@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     configurarEventListeners();
     configurarTutorial();
     mostrarPantalla('pantallaInicio');
+    intentarRehidratarEstado();
 });
 
 // Inicializar Socket.IO
@@ -375,6 +376,8 @@ function manejarJuegoIniciado(data) {
     actualizarListaGanadores();
     
     mostrarNotificacion('¡El juego ha comenzado!', 'exito');
+    // Habilitar todos los patrones al inicio
+    document.querySelectorAll('.btn-bingo').forEach(b => b.disabled = false);
 }
 
 function manejarNumeroCantado(data) {
@@ -413,14 +416,19 @@ function manejarBingoDeclarado(ganador) {
         if (!yaExiste) salaActual.ganadores.push(ganador);
     }
     actualizarListaGanadores();
+    // Historial
+    agregarEventoHistorial(`🏆 ${ganador.jugador.nombre} ganó ${obtenerNombrePatron(ganador.patron)}`);
     mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${ganador.resultado.tipo}!`, 'exito');
     playBingo();
-
+    // Deshabilitar el botón del patrón ganado para todos y mostrar tag
+    const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
+    if (btn) btn.disabled = true;
+    const tag = document.querySelector(`.tag-ganado[data-tag="${ganador.patron}"]`);
+    if (tag) tag.style.display = 'block';
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     } else {
-        // Cuenta regresiva en el modal de bingo y luego mostrar ganadores finales 5s
         iniciarCuentaRegresivaFinal(5);
     }
 }
@@ -525,6 +533,8 @@ function actualizarBotonesBingo(patrones) {
             btn.style.display = 'none';
             btn.disabled = true;
         }
+        const tag = document.querySelector(`.tag-ganado[data-tag="${patron}"]`);
+        if (tag) tag.style.display = 'none';
     });
 }
 
@@ -1067,4 +1077,32 @@ function manejarJuegoReanudado(data) {
     const enPausa = data.mensaje.includes('pausa');
     btn.dataset.pausado = enPausa ? 'true' : 'false';
     btn.innerHTML = enPausa ? '<i class="fas fa-play"></i> Reanudar' : '<i class="fas fa-pause"></i> Pausar';
+}
+
+// Historial en vivo
+function agregarEventoHistorial(texto) {
+    const lista = document.getElementById('historialEventos');
+    if (!lista) return;
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    const hora = new Date();
+    const hh = String(hora.getHours()).padStart(2, '0');
+    const mm = String(hora.getMinutes()).padStart(2, '0');
+    item.innerHTML = `<span class="hist-time">[${hh}:${mm}]</span> ${texto}`;
+    lista.prepend(item);
+    // Limitar a 20 eventos
+    while (lista.childElementCount > 20) lista.lastElementChild.remove();
+}
+
+// Persistencia breve (cliente): al cargar la app, si hay una sala activa asociada al socket, rehidratar estado
+async function intentarRehidratarEstado() {
+    try {
+        if (!salaActual && socket && socket.id) {
+            // Endpoint de ejemplo: /api/salas podría listar; podríamos mejorar con un mapping de socket->sala si servidor lo expone
+            const res = await fetch('/api/salas');
+            const salas = await res.json();
+            // Nada que rehidratar aquí sin más endpoints; mantenemos la estructura por si extendemos el backend
+            console.log('Salas en servidor:', salas);
+        }
+    } catch (e) { console.warn('No se pudo rehidratar estado', e); }
 }

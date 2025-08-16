@@ -220,18 +220,23 @@
                                 <button class="btn btn-bingo" data-patron="linea">
                                     <i class="fas fa-minus"></i> Línea
                                 </button>
+                                <span class="tag-ganado" data-tag="linea" style="display:none;">Ya ganado</span>
                                 <button class="btn btn-bingo" data-patron="tablaLlena">
                                     <i class="fas fa-square"></i> Tabla Llena
                                 </button>
+                                <span class="tag-ganado" data-tag="tablaLlena" style="display:none;">Ya ganado</span>
                                 <button class="btn btn-bingo" data-patron="cuatroEsquinas">
                                     <i class="fas fa-border-all"></i> Cuatro Esquinas
                                 </button>
+                                <span class="tag-ganado" data-tag="cuatroEsquinas" style="display:none;">Ya ganado</span>
                                 <button class="btn btn-bingo" data-patron="loco">
                                     <i class="fas fa-times"></i> Loco
                                 </button>
+                                <span class="tag-ganado" data-tag="loco" style="display:none;">Ya ganado</span>
                                 <button class="btn btn-bingo" data-patron="machetaso">
                                     <i class="fas fa-slash"></i> Machetaso
                                 </button>
+                                <span class="tag-ganado" data-tag="machetaso" style="display:none;">Ya ganado</span>
                             </div>
                         </div>
                     </div>
@@ -245,6 +250,11 @@
                         <div id="panelGanadores" class="ganadores">
                             <h3>Ganadores</h3>
                             <div id="listaGanadores" class="lista-ganadores"></div>
+                        </div>
+
+                        <div class="historial">
+                            <h3>Historial</h3>
+                            <div id="historialEventos" class="lista-historial"></div>
                         </div>
                     </div>
                 </div>

@@ -1341,9 +1341,11 @@ body {
     display: none !important;
 }
 
+/* Estado deshabilitado para botones de patrones */
 .btn-bingo:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    filter: grayscale(0.2);
 }
 
 /* Asegurar que la configuración rápida sea visible para el anfitrión */
@@ -1571,3 +1573,11 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .celda-bingo.free::after, .mini-grid .numero.free::after, .tabla-bingo-mini .numero.free::after {
     content: '';
 }
+
+/* Historial */
+.lista-historial { max-height: 200px; overflow-y: auto; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
+.hist-item { font-size: 0.9rem; color: #2d3748; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.hist-time { color: #718096; font-size: 0.8rem; }
+
+/* Tag de patrón ganado */
+.tag-ganado { display: block; text-align: center; margin-top: 6px; font-size: 0.8rem; color: #2f855a; background: #f0fff4; border: 1px solid #9ae6b4; border-radius: 999px; padding: 4px 8px; }
