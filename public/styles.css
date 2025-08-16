@@ -451,18 +451,6 @@ body {
     align-items: start;
 }
 
-@media (max-width: 1200px) {
-    .grid-tablas { grid-template-columns: repeat(5, minmax(120px, 1fr)); }
-}
-@media (max-width: 900px) {
-    .grid-tablas { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
-}
-@media (max-width: 700px) {
-    .grid-tablas { grid-template-columns: repeat(3, minmax(110px, 1fr)); }
-}
-@media (max-width: 520px) {
-    .grid-tablas { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
-}
 
 .tabla-mini {
     background: white;
@@ -1506,49 +1494,39 @@ body {
     margin: 0 auto;
 }
 
-@media (max-width: 1024px) {
-    .juego-content {
-        grid-template-columns: 1fr 1.2fr 1fr;
-    }
-}
 
-@media (max-width: 768px) {
-    .container, .container-juego { padding: 16px; }
-    .juego-content { grid-template-columns: 1fr; }
-}
 
-/* Mini tablas en selección */
+/* Mini tablas en selección (desktop) */
 .tabla-mini {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
+    width: auto; /* ancho según contenido */
+    max-width: none;
+    padding: 20px;
 }
-.tabla-mini-title {
-    font-weight: 700;
-    color: #2d3748;
-}
+
 .mini-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
-    width: 100%;
-    max-width: 180px;
+    display: inline-grid; /* se centra mejor con width auto */
+    grid-template-columns: repeat(5, 42px); /* celdas de ancho fijo para evitar redondeo */
+    gap: 6px;
+    margin: 0 auto; /* centrar el grid dentro de la tarjeta */
 }
+
 .mini-grid .numero {
-    aspect-ratio: 1 / 1;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    font-weight: 600;
-}
-
-@media (max-width: 480px) {
-    .mini-grid { max-width: 150px; gap: 3px; }
+    font-weight: 700;
+    font-size: 13px;
+    box-sizing: border-box;
 }
 
 /* Refinado de paddings y tipografía */
@@ -1565,3 +1543,15 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 /* Corrección de alineación en PC */
 .tabla-mini { text-align: center; }
 .mini-grid { margin-left: auto; margin-right: auto; }
+
+/* Contenedor general para centrado de grilla */
+.tablas-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.grid-tablas {
+    width: 100%;
+    max-width: 1200px; /* limita ancho total */
+    justify-content: center;
+}
