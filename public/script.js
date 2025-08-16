@@ -52,6 +52,8 @@ function inicializarSocket() {
     socket.on('unidoSala', manejarUnidoSala);
     socket.on('jugadorUnido', manejarJugadorUnido);
     socket.on('tablaOcupada', manejarTablaOcupada);
+    socket.on('tablaLiberada', manejarTablaLiberada);
+    socket.on('jugadorSeleccionoTabla', manejarJugadorSeleccionoTabla);
     socket.on('juegoIniciado', manejarJuegoIniciado);
     socket.on('numeroCantado', manejarNumeroCantado);
     socket.on('numeroMarcado', manejarNumeroMarcado);
@@ -150,21 +152,25 @@ function seleccionarTabla(tablaId) {
     const tabla = salaActual.tablas.find(t => t.id === tablaId);
     if (!tabla || !tabla.disponible) return;
     
-    // Marcar tabla como seleccionada
-    tabla.disponible = false;
-    tablaSeleccionada = tabla;
+    // Si ya tenía seleccionada otra, remover marca visual en cliente (servidor igualmente la liberará)
+    if (tablaSeleccionada && tablaSeleccionada.id !== tablaId) {
+        const anteriorEl = document.querySelector(`[data-tabla-id="${tablaSeleccionada.id}"]`);
+        if (anteriorEl) anteriorEl.classList.remove('seleccionada');
+    }
     
-    // Actualizar UI
-    mostrarTablasDisponibles();
+    // Marcar inmediatamente como seleccionada para mejor UX
+    const tablaEl = document.querySelector(`[data-tabla-id="${tablaId}"]`);
+    if (tablaEl) {
+        tablaEl.classList.add('seleccionada');
+    }
+    
+    tablaSeleccionada = tabla;
     
     // Notificar al servidor
     socket.emit('seleccionarTabla', {
         salaId: salaActual.id,
         tablaId: tablaId
     });
-    
-    // Actualizar número de jugadores
-    actualizarNumeroJugadores();
     
     mostrarNotificacion(`Tabla ${tablaId + 1} seleccionada`, 'exito');
 }
@@ -222,6 +228,10 @@ function manejarSalaCreada(data) {
     
     if (codigoElement) codigoElement.textContent = data.salaId;
     if (nombreElement) nombreElement.textContent = jugadorActual.nombre;
+
+    // También en la pantalla de configuración
+    const codigoConfig = document.getElementById('codigoSalaMostrar');
+    if (codigoConfig) codigoConfig.textContent = data.salaId;
     
     // Refrescar conteos/listas
     actualizarNumeroJugadores();
@@ -288,6 +298,28 @@ function manejarTablaOcupada(data) {
     if (salaActual && salaActual.tablas) {
         const t = salaActual.tablas.find(tt => tt.id === data.tablaId);
         if (t) t.disponible = false;
+    }
+}
+
+function manejarTablaLiberada(data) {
+    const tablaElement = document.querySelector(`[data-tabla-id="${data.tablaId}"]`);
+    if (tablaElement) {
+        tablaElement.classList.remove('ocupada');
+        tablaElement.classList.remove('seleccionada');
+    }
+    if (salaActual && salaActual.tablas) {
+        const t = salaActual.tablas.find(tt => tt.id === data.tablaId);
+        if (t) t.disponible = true;
+    }
+}
+
+function manejarJugadorSeleccionoTabla(data) {
+    if (!salaActual || !Array.isArray(salaActual.jugadores)) return;
+    const jugador = salaActual.jugadores.find(j => j.id === data.jugadorId);
+    if (jugador) {
+        jugador.tablaSeleccionada = data.tabla;
+        mostrarListaJugadoresSeleccion();
+        actualizarListaJugadores();
     }
 }
 
@@ -463,14 +495,13 @@ function mostrarListaJugadoresSeleccion() {
             if (jugador.id === salaActual.anfitrion) {
                 div.classList.add('anfitrion');
             }
-            
+            const estadoTabla = jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Seleccionando...';
+            const tipoBadge = jugador.tablaSeleccionada ? 'tabla' : 'seleccionando';
             div.innerHTML = `
                 <div class="avatar">${jugador.nombre.charAt(0).toUpperCase()}</div>
                 <div>
                     <div style="font-weight: 500;">${jugador.nombre}</div>
-                    <div style="font-size: 0.8rem; color: #718096;">
-                        ${jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Sin tabla'}
-                    </div>
+                    <div class="badge-estado ${tipoBadge}">${estadoTabla}</div>
                 </div>
             `;
             
@@ -540,14 +571,14 @@ function actualizarListaJugadores() {
         if (jugador.id === salaActual.anfitrion) {
             div.classList.add('anfitrion');
         }
+        const estadoTabla = jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Seleccionando...';
+        const tipoBadge = jugador.tablaSeleccionada ? 'tabla' : 'seleccionando';
         
         div.innerHTML = `
             <div class="avatar">${jugador.nombre.charAt(0).toUpperCase()}</div>
             <div>
                 <div style="font-weight: 500;">${jugador.nombre}</div>
-                <div style="font-size: 0.8rem; color: #718096;">
-                    ${jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Sin tabla'}
-                </div>
+                <div class="badge-estado ${tipoBadge}">${estadoTabla}</div>
             </div>
         `;
         
@@ -737,17 +768,27 @@ function manejarTablaSeleccionada(data) {
         const yo = salaActual.jugadores.find(j => j.id === jugadorActual.id);
         if (yo) yo.tablaSeleccionada = data.tabla;
     }
-    
-    // Marcar tabla como seleccionada en la UI
-    document.querySelectorAll('.tabla-mini').forEach(tabla => {
-        tabla.classList.remove('seleccionada');
-    });
-    
-    const tablaElement = document.querySelector(`[data-tabla-id="${data.tabla.id}"]`);
-    if (tablaElement) {
-        tablaElement.classList.add('seleccionada');
+    // Refrescar disponibilidad local
+    if (salaActual && salaActual.tablas) {
+        salaActual.tablas.forEach(t => {
+            const el = document.querySelector(`[data-tabla-id="${t.id}"]`);
+            if (!el) return;
+            if (t.id === data.tabla.id) {
+                t.disponible = false;
+                el.classList.add('seleccionada');
+                el.classList.remove('ocupada');
+            }
+        });
     }
     
+    // Visual
+    document.querySelectorAll('.tabla-mini').forEach(tabla => {
+        const id = parseInt(tabla.dataset.tablaId, 10);
+        if (id !== data.tabla.id) tabla.classList.remove('seleccionada');
+    });
+    
+    mostrarListaJugadoresSeleccion();
+    actualizarListaJugadores();
     mostrarNotificacion(`Seleccionaste la tabla ${data.tabla.id + 1}`, 'exito');
     
     if (salaActual.juegoActivo) {
