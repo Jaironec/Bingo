@@ -614,17 +614,18 @@ function crearElementoTabla(tabla) {
 }
 
 function inicializarPantallaJuego() {
-    console.log('🎮 Inicializando pantalla de juego');
     document.getElementById('codigoSalaJuego').textContent = salaActual.id;
-    
     actualizarListaJugadores();
     actualizarNumerosCantados();
     actualizarNumerosMarcados();
-    
     if (tablaSeleccionada) {
+        // Marcar FREE si aplica
+        const centro = tablaSeleccionada?.numeros?.[2]?.[2];
+        if (centro && centro.esLibre && !numerosMarcados.includes(centro.numero)) {
+            numerosMarcados.push(centro.numero);
+        }
         actualizarTablaBingo();
     }
-    
     actualizarListaGanadores();
 }
 
