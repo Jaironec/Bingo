@@ -597,13 +597,18 @@ function crearElementoTabla(tabla) {
         div.classList.add('ocupada');
     }
     
+    const miniGrid = tabla.numeros.map((fila, filaIndex) =>
+        fila.map((celda, colIndex) => {
+            if (filaIndex === 2 && colIndex === 2 && celda.esLibre) {
+                return `<span class="numero free"><i class=\"fas fa-star\"></i></span>`;
+            }
+            return `<span class="numero">${celda.numero}</span>`;
+        }).join('')
+    ).join('');
+
     div.innerHTML = `
         <div class="tabla-mini-title">Tabla ${tabla.id + 1}</div>
-        <div class="mini-grid">
-            ${tabla.numeros.map(fila => 
-                fila.map(celda => `<span class="numero">${celda.numero}</span>`).join('')
-            ).join('')}
-        </div>
+        <div class="mini-grid">${miniGrid}</div>
     `;
     
     if (tabla.disponible) {
@@ -715,15 +720,22 @@ function actualizarTablaBingo() {
         fila.forEach((celda, colIndex) => {
             const elemento = document.createElement('div');
             elemento.className = 'celda-bingo';
-            elemento.textContent = celda.numero;
             elemento.style.gridColumn = colIndex + 1;
             elemento.style.gridRow = filaIndex + 2; // +2 porque la fila 1 son los headers
+            
+            if (filaIndex === 2 && colIndex === 2 && celda.esLibre) {
+                elemento.classList.add('free');
+                elemento.innerHTML = '<i class="fas fa-star"></i>';
+            } else {
+                elemento.textContent = celda.numero;
+            }
             
             if (numerosMarcados.includes(celda.numero)) {
                 elemento.classList.add('marcada');
             }
             
             elemento.addEventListener('click', () => {
+                if (celda.esLibre) return;
                 if (numerosCantados.includes(celda.numero) && !numerosMarcados.includes(celda.numero)) {
                     marcarNumero(celda.numero);
                 }
@@ -781,9 +793,10 @@ function mostrarModalBingo(ganador) {
                 <div class="tabla-bingo-mini">
                     ${ganador.jugador.tablaSeleccionada.numeros.map((fila, filaIndex) => 
                         fila.map((celda, colIndex) => {
-                            const esMarcado = ganador.jugador.numerosMarcados.includes(celda.numero);
+                            const esMarcado = ganador.jugador.numerosMarcados.includes(celda.numero) || celda.esLibre;
                             const esGanador = esGanadorEnPatron(ganador.patron, ganador.resultado, filaIndex, colIndex, esMarcado);
-                            return `<span class="numero ${esMarcado ? 'marcado' : ''} ${esGanador ? 'ganador' : ''}">${celda.numero}</span>`;
+                            const base = celda.esLibre ? '<span class="numero free"><i class=\"fas fa-star\"></i>' : `<span class=\"numero${esGanador ? ' ganador' : ''}\">${celda.numero}`;
+                            return `${base}${esMarcado ? '' : ''}</span>`;
                         }).join('')
                     ).join('')}
                 </div>
