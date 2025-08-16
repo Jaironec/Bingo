@@ -481,44 +481,22 @@ function iniciarCantoAutomatico(salaId) {
   const sala = salas.get(salaId);
   if (!sala) return;
   
-  const todosLosNumeros = [];
-  for (let i = 1; i <= 75; i++) {
-    todosLosNumeros.push(i);
-  }
-  
-  // Mezclar el array de números para mayor aleatoriedad
-  function mezclarArray(array) {
-    const arrayMezclado = [...array];
-    for (let i = arrayMezclado.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arrayMezclado[i], arrayMezclado[j]] = [arrayMezclado[j], arrayMezclado[i]];
-    }
-    return arrayMezclado;
-  }
-  
-  // Mezclar los números disponibles
-  let numerosDisponibles = mezclarArray(todosLosNumeros);
-  
-  console.log(`🎲 Iniciando canto automático con números mezclados:`, numerosDisponibles.slice(0, 10), '...');
+  // Conjunto de números disponibles 1..75
+  let numerosDisponibles = [];
+  for (let i = 1; i <= 75; i++) numerosDisponibles.push(i);
   
   const intervalo = setInterval(() => {
-    // Solo detener si hay tabla llena
+    // Detener si ya hubo tabla llena
     const hayTablaLlena = sala.ganadores.some(g => g.patron === 'tablaLlena');
-    
     if (hayTablaLlena) {
-      console.log(`Canto automático detenido permanentemente por tabla llena`);
       clearInterval(intervalo);
       return;
     }
     
-    // Si el juego está pausado, no cantar números pero mantener el intervalo
+    // Pausa respetando el estado del juego
     if (!sala.juegoActivo) {
-      console.log(`Canto automático pausado - esperando reanudación...`);
       return;
     }
-    
-    // Filtrar números que ya fueron cantados
-    numerosDisponibles = numerosDisponibles.filter(num => !sala.numerosCantados.includes(num));
     
     if (numerosDisponibles.length === 0) {
       clearInterval(intervalo);
@@ -526,12 +504,11 @@ function iniciarCantoAutomatico(salaId) {
       return;
     }
     
-    // Tomar el primer número del array mezclado (más aleatorio)
-    const numeroAleatorio = numerosDisponibles[0];
+    // Elegir un índice aleatorio de los disponibles y extraerlo
+    const idx = Math.floor(Math.random() * numerosDisponibles.length);
+    const numeroAleatorio = numerosDisponibles.splice(idx, 1)[0];
     const letraBingo = obtenerLetraBingo(numeroAleatorio);
     sala.numerosCantados.push(numeroAleatorio);
-    
-    console.log(`🎯 Cantando número: ${letraBingo}${numeroAleatorio} (números restantes: ${numerosDisponibles.length})`);
     
     io.to(salaId).emit('numeroCantado', { 
       numero: numeroAleatorio,
