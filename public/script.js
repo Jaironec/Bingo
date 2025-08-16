@@ -375,6 +375,8 @@ function manejarJuegoIniciado(data) {
     actualizarListaGanadores();
     
     mostrarNotificacion('¡El juego ha comenzado!', 'exito');
+    // Habilitar todos los patrones al inicio
+    document.querySelectorAll('.btn-bingo').forEach(b => b.disabled = false);
 }
 
 function manejarNumeroCantado(data) {
@@ -415,7 +417,9 @@ function manejarBingoDeclarado(ganador) {
     actualizarListaGanadores();
     mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${ganador.resultado.tipo}!`, 'exito');
     playBingo();
-
+    // Deshabilitar el botón del patrón ganado para todos
+    const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
+    if (btn) btn.disabled = true;
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);

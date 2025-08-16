@@ -1341,9 +1341,11 @@ body {
     display: none !important;
 }
 
+/* Estado deshabilitado para botones de patrones */
 .btn-bingo:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    filter: grayscale(0.2);
 }
 
 /* Asegurar que la configuración rápida sea visible para el anfitrión */
