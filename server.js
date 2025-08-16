@@ -439,6 +439,22 @@ io.on('connection', (socket) => {
     sala.configuracion = { ...sala.configuracion, ...data.configuracion };
     io.to(data.salaId).emit('salaConfigurada', { configuracion: sala.configuracion });
   });
+
+  // Pausar juego (solo anfitrión)
+  socket.on('pausarJuego', (data) => {
+    const sala = salas.get(data.salaId);
+    if (!sala || sala.anfitrion !== socket.id) return;
+    sala.juegoActivo = false;
+    io.to(data.salaId).emit('juegoReanudado', { mensaje: 'Juego en pausa' });
+  });
+
+  // Reanudar juego (solo anfitrión)
+  socket.on('reanudarJuego', (data) => {
+    const sala = salas.get(data.salaId);
+    if (!sala || sala.anfitrion !== socket.id) return;
+    sala.juegoActivo = true;
+    io.to(data.salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+  });
   
   // Desconexión
   socket.on('disconnect', () => {

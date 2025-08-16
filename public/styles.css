@@ -1543,3 +1543,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 
 /* Botones consistentes */
 .btn { border-radius: 10px; font-weight: 600; }
+
+/* Corrección de alineación en PC */
+.tabla-mini { text-align: center; }
+.mini-grid { margin-left: auto; margin-right: auto; }
