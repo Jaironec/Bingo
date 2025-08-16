@@ -37,10 +37,38 @@ function reproducirVozNumero(numero, letra) {
     }
 }
 
+function mostrarTutorialSiCorresponde() {
+    try {
+        const noMostrar = localStorage.getItem('bingo_no_tutorial') === '1';
+        if (noMostrar) return;
+        const modal = document.getElementById('modalTutorial');
+        modal.classList.remove('oculta');
+    } catch (_) {}
+}
+
+function configurarTutorial() {
+    const btnCerrar = document.getElementById('btnCerrarTutorial');
+    const btnOmitir = document.getElementById('btnOmitirTutorial');
+    const chkNoMostrar = document.getElementById('chkNoMostrarTutorial');
+    const modal = document.getElementById('modalTutorial');
+    if (!btnCerrar || !btnOmitir || !chkNoMostrar) return;
+
+    function cerrar() {
+        if (chkNoMostrar.checked) {
+            try { localStorage.setItem('bingo_no_tutorial', '1'); } catch (_) {}
+        }
+        modal.classList.add('oculta');
+    }
+
+    btnCerrar.addEventListener('click', cerrar);
+    btnOmitir.addEventListener('click', cerrar);
+}
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
     inicializarSocket();
     configurarEventListeners();
+    configurarTutorial();
     mostrarPantalla('pantallaInicio');
 });
 
@@ -245,6 +273,8 @@ function manejarSalaCreada(data) {
     document.body.classList.add('anfitrion');
     
     mostrarNotificacion('Sala creada exitosamente. Selecciona tu tabla para jugar', 'exito');
+    // Tutorial
+    mostrarTutorialSiCorresponde();
 }
 
 function manejarUnidoSala(data) {
@@ -267,6 +297,8 @@ function manejarUnidoSala(data) {
     }
     
     mostrarNotificacion(`Te uniste a la sala como ${jugadorActual.nombre}`, 'exito');
+    // Tutorial
+    mostrarTutorialSiCorresponde();
 }
 
 function manejarJugadorUnido(jugador) {
