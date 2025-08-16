@@ -1202,7 +1202,7 @@ body {
 
 /* Modal final del juego */
 .modal-final {
-    max-width: 600px;
+    max-width: 640px;
 }
 
 .modal-final h4 {
@@ -1213,9 +1213,9 @@ body {
 }
 
 #ganadoresFinales {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
 }
 
 .ganador-categoria {
@@ -1480,4 +1480,21 @@ body {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ajustes de contenedores para mejor adaptabilidad */
+.container, .container-juego {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+    .juego-content {
+        grid-template-columns: 1fr 1.2fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container, .container-juego { padding: 16px; }
+    .juego-content { grid-template-columns: 1fr; }
 }
