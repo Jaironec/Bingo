@@ -68,12 +68,12 @@ function generarTablaBingo() {
   return filas;
 }
 
-// Generar 20 tablas únicas
+// Generar 21 tablas únicas
 function generarTablasUnicas() {
   const tablas = [];
   const tablasSet = new Set();
   
-  while (tablas.length < 20) {
+  while (tablas.length < 21) {
     const tabla = generarTablaBingo();
     const tablaString = JSON.stringify(tabla);
     

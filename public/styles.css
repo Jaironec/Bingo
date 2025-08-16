@@ -444,11 +444,24 @@ body {
 /* Grid de tablas */
 .grid-tablas {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(7, minmax(120px, 1fr));
     gap: 15px;
     margin-bottom: 20px;
-    justify-items: center; /* centrar cada tarjeta en su celda */
+    justify-items: center;
     align-items: start;
+}
+
+@media (max-width: 1200px) {
+    .grid-tablas { grid-template-columns: repeat(5, minmax(120px, 1fr)); }
+}
+@media (max-width: 900px) {
+    .grid-tablas { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+}
+@media (max-width: 700px) {
+    .grid-tablas { grid-template-columns: repeat(3, minmax(110px, 1fr)); }
+}
+@media (max-width: 520px) {
+    .grid-tablas { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
 }
 
 .tabla-mini {
