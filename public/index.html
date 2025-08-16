@@ -73,6 +73,11 @@
                                 <span class="checkmark"></span>
                                 Patrón Loco (X)
                             </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="patronMachetaso" checked>
+                                <span class="checkmark"></span>
+                                Machetaso (diagonal por el centro)
+                            </label>
                         </div>
                     </div>
                     
@@ -152,6 +157,9 @@
                             <label class="patron-checkbox">
                                 <input type="checkbox" value="loco" checked> Loco
                             </label>
+                            <label class="patron-checkbox">
+                                <input type="checkbox" value="machetaso" checked> Machetaso
+                            </label>
                         </div>
                         <div class="velocidad-rapida">
                             <label>Velocidad: <span id="velocidadTextoRapido">3s</span></label>
@@ -220,6 +228,9 @@
                                 </button>
                                 <button class="btn btn-bingo" data-patron="loco">
                                     <i class="fas fa-times"></i> Loco
+                                </button>
+                                <button class="btn btn-bingo" data-patron="machetaso">
+                                    <i class="fas fa-slash"></i> Machetaso
                                 </button>
                             </div>
                         </div>
@@ -311,11 +322,10 @@
                     </div>
                     <label class="no-mostrar">
                         <input type="checkbox" id="chkNoMostrarTutorial">
-                        No volver a mostrar
+                        No mostrar de nuevo en esta sesión
                     </label>
                 </div>
                 <div class="modal-footer">
-                    <button id="btnOmitirTutorial" class="btn btn-secondary">Omitir</button>
                     <button id="btnCerrarTutorial" class="btn btn-primary">Entendido</button>
                 </div>
             </div>
