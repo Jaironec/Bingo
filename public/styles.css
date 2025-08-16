@@ -1533,10 +1533,10 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     justify-content: center;
 }
 
-/* Tutorial */
-.modal-tutorial { max-width: 720px; text-align: left; }
-.tutorial-section { margin-bottom: 14px; }
-.tutorial-steps, .tutorial-modos { margin-left: 18px; color: #4a5568; }
-.tutorial-steps li, .tutorial-modos li { margin: 6px 0; }
-.modo-icono { display: inline-flex; width: 20px; justify-content: center; color: #667eea; margin-right: 6px; }
-.no-mostrar { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: #4a5568; }
+/* Tutorial refinado */
+.modal-tutorial { max-width: 760px; text-align: left; }
+.modal-tutorial .modal-header h3 { display: flex; align-items: center; gap: 8px; }
+.tutorial-section h4 { margin-bottom: 8px; color: #2d3748; }
+.tutorial-steps li::marker { color: #667eea; font-weight: 700; }
+.tutorial-modos li { display: flex; align-items: center; gap: 8px; }
+.tutorial-modos strong { margin-right: 6px; }

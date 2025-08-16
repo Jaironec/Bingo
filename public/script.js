@@ -39,7 +39,7 @@ function reproducirVozNumero(numero, letra) {
 
 function mostrarTutorialSiCorresponde() {
     try {
-        const noMostrar = localStorage.getItem('bingo_no_tutorial') === '1';
+        const noMostrar = sessionStorage.getItem('bingo_no_tutorial') === '1';
         if (noMostrar) return;
         const modal = document.getElementById('modalTutorial');
         modal.classList.remove('oculta');
@@ -48,20 +48,18 @@ function mostrarTutorialSiCorresponde() {
 
 function configurarTutorial() {
     const btnCerrar = document.getElementById('btnCerrarTutorial');
-    const btnOmitir = document.getElementById('btnOmitirTutorial');
     const chkNoMostrar = document.getElementById('chkNoMostrarTutorial');
     const modal = document.getElementById('modalTutorial');
-    if (!btnCerrar || !btnOmitir || !chkNoMostrar) return;
+    if (!btnCerrar || !chkNoMostrar) return;
 
     function cerrar() {
         if (chkNoMostrar.checked) {
-            try { localStorage.setItem('bingo_no_tutorial', '1'); } catch (_) {}
+            try { sessionStorage.setItem('bingo_no_tutorial', '1'); } catch (_) {}
         }
         modal.classList.add('oculta');
     }
 
     btnCerrar.addEventListener('click', cerrar);
-    btnOmitir.addEventListener('click', cerrar);
 }
 
 // Inicialización
@@ -958,12 +956,35 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
 }
 
 // Funciones auxiliares
+function obtenerNombrePatron(patron) {
+    const nombres = {
+        'linea': 'Línea',
+        'loco': 'LOCO (5 números)',
+        'cuatroEsquinas': 'Cuatro Esquinas',
+        'tablaLlena': 'Tabla Llena',
+        'machetaso': 'Machetaso'
+    };
+    return nombres[patron] || patron;
+}
+
+function obtenerIconoPatron(patron) {
+    const iconos = {
+        'linea': '<i class="fas fa-minus"></i>',
+        'loco': '<i class="fas fa-times"></i>',
+        'cuatroEsquinas': '<i class="fas fa-border-all"></i>',
+        'tablaLlena': '<i class="fas fa-square"></i>',
+        'machetaso': '<i class="fas fa-slash"></i>'
+    };
+    return iconos[patron] || '<i class="fas fa-trophy"></i>';
+}
+
 function obtenerPatronesSeleccionados() {
     const patrones = [];
     if (document.getElementById('patronLinea').checked) patrones.push('linea');
     if (document.getElementById('patronTablaLlena').checked) patrones.push('tablaLlena');
     if (document.getElementById('patronCuatroEsquinas').checked) patrones.push('cuatroEsquinas');
     if (document.getElementById('patronLoco').checked) patrones.push('loco');
+    if (document.getElementById('patronMachetaso')?.checked) patrones.push('machetaso');
     return patrones;
 }
 

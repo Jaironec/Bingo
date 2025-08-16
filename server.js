@@ -141,6 +141,15 @@ function verificarBingo(tabla, numerosMarcados, patron) {
         return { ganado: true, tipo: 'LOCO (5 números)' };
       }
       break;
+
+    case 'machetaso':
+      // Diagonal que pasa por el centro (principal)
+      if (tabla[0][0] && tabla[1][1] && tabla[2][2] && tabla[3][3] && tabla[4][4] &&
+          numerosSet.has(tabla[0][0].numero) && numerosSet.has(tabla[1][1].numero) &&
+          numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][3].numero) && numerosSet.has(tabla[4][4].numero)) {
+        return { ganado: true, tipo: 'machetaso (diagonal central)' };
+      }
+      break;
   }
   
   return { ganado: false };
