@@ -91,56 +91,64 @@ function generarTablasUnicas() {
 }
 
 // Verificar patrones de bingo
-function verificarBingo(tabla, numerosMarcados, patron) {
+function verificarBingo(tabla, numerosMarcados, patron, numeroUltimo) {
   const numerosSet = new Set(numerosMarcados);
+  const incluyeUltimo = (fila, col) => {
+    try { return tabla[fila][col].numero === numeroUltimo; } catch { return false; }
+  };
   
   switch (patron) {
     case 'linea':
       // Verificar líneas verticales primero
       for (let col = 0; col < 5; col++) {
-        if (tabla.every(fila => numerosSet.has(fila[col].numero))) {
+        const completa = tabla.every(fila => numerosSet.has(fila[col].numero));
+        if (completa && tabla.some((fila, f) => incluyeUltimo(f, col))) {
           return { ganado: true, tipo: 'línea vertical', columna: col + 1 };
         }
       }
       // Luego líneas horizontales
       for (let fila = 0; fila < 5; fila++) {
-        if (tabla[fila].every(celda => numerosSet.has(celda.numero))) {
+        const completa = tabla[fila].every(celda => numerosSet.has(celda.numero));
+        if (completa && tabla[fila].some(celda => celda.numero === numeroUltimo)) {
           return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
         }
       }
       break;
       
     case 'tablaLlena':
-      if (tabla.every(fila => fila.every(celda => numerosSet.has(celda.numero)))) {
+      if (tabla.every(fila => fila.every(celda => numerosSet.has(celda.numero))) &&
+          tabla.some(fila => fila.some(celda => celda.numero === numeroUltimo))) {
         return { ganado: true, tipo: 'tabla llena' };
       }
       break;
       
     case 'cuatroEsquinas':
-      if (numerosSet.has(tabla[0][0].numero) && numerosSet.has(tabla[0][4].numero) && 
-          numerosSet.has(tabla[4][0].numero) && numerosSet.has(tabla[4][4].numero)) {
+      const corners = [tabla[0][0], tabla[0][4], tabla[4][0], tabla[4][4]];
+      const completas = corners.every(c => numerosSet.has(c.numero));
+      const ultimoEnCorners = corners.some(c => c.numero === numeroUltimo);
+      if (completas && ultimoEnCorners) {
         return { ganado: true, tipo: 'cuatro esquinas' };
       }
       break;
       
     case 'loco':
-      // LOCO: verificar si el jugador ha marcado exactamente 5 números
-      // No importa de qué letra sean, solo que sean exactamente 5
-      if (numerosMarcados.length === 5) {
+      // LOCO: exactamente 5 números y que incluya el último cantado
+      if (numerosMarcados.length === 5 && numerosSet.has(numeroUltimo)) {
         return { ganado: true, tipo: 'LOCO (5 números)' };
       }
       break;
 
     case 'machetaso':
-      // Cualquiera de las diagonales que pasan por el centro
-      const diagonalPrincipal = tabla[0][0] && tabla[1][1] && tabla[2][2] && tabla[3][3] && tabla[4][4] &&
-        numerosSet.has(tabla[0][0].numero) && numerosSet.has(tabla[1][1].numero) &&
-        numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][3].numero) && numerosSet.has(tabla[4][4].numero);
-      const diagonalSecundaria = tabla[0][4] && tabla[1][3] && tabla[2][2] && tabla[3][1] && tabla[4][0] &&
-        numerosSet.has(tabla[0][4].numero) && numerosSet.has(tabla[1][3].numero) &&
-        numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][1].numero) && numerosSet.has(tabla[4][0].numero);
-      if (diagonalPrincipal || diagonalSecundaria) {
-        return { ganado: true, tipo: 'machetaso (diagonal central)' };
+      // Cualquiera de las diagonales que pasan por el centro, e incluir el último
+      const diagPCompleta = [0,1,2,3,4].every(i => numerosSet.has(tabla[i][i].numero));
+      const diagSCompleta = [0,1,2,3,4].every(i => numerosSet.has(tabla[i][4 - i].numero));
+      const ultimoEnDiagP = [0,1,2,3,4].some(i => tabla[i][i].numero === numeroUltimo);
+      const ultimoEnDiagS = [0,1,2,3,4].some(i => tabla[i][4 - i].numero === numeroUltimo);
+      if (diagPCompleta && ultimoEnDiagP) {
+        return { ganado: true, tipo: 'machetaso (diagonal central)', diagonal: 'principal' };
+      }
+      if (diagSCompleta && ultimoEnDiagS) {
+        return { ganado: true, tipo: 'machetaso (diagonal central)', diagonal: 'secundaria' };
       }
       break;
   }
@@ -390,7 +398,8 @@ io.on('connection', (socket) => {
     const resultado = verificarBingo(
       jugador.tablaSeleccionada.numeros,
       numerosValidos, // Usar solo números válidos
-      data.patron
+      data.patron,
+      ultimoNumeroCantado
     );
     
     console.log(`- Resultado de validación:`, resultado);
