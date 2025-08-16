@@ -284,6 +284,43 @@
             </div>
         </div>
 
+        <!-- Modal de tutorial -->
+        <div id="modalTutorial" class="modal oculta">
+            <div class="modal-content modal-tutorial">
+                <div class="modal-header">
+                    <h3><i class="fas fa-lightbulb"></i> Cómo jugar</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="tutorial-section">
+                        <h4>Resumen rápido</h4>
+                        <ol class="tutorial-steps">
+                            <li>Crea o únete a una sala.</li>
+                            <li>Elige tu tabla de bingo entre las disponibles.</li>
+                            <li>Se cantan números automáticamente; márcalos si están en tu tabla.</li>
+                            <li>Cuando completes un patrón, declara Bingo con el botón del patrón.</li>
+                        </ol>
+                    </div>
+                    <div class="tutorial-section">
+                        <h4>Modos de bingo</h4>
+                        <ul class="tutorial-modos">
+                            <li><span class="modo-icono"><i class="fas fa-minus"></i></span><strong>Línea:</strong> completa una fila, columna o diagonal.</li>
+                            <li><span class="modo-icono"><i class="fas fa-border-all"></i></span><strong>Cuatro Esquinas:</strong> marca las cuatro esquinas de tu tabla.</li>
+                            <li><span class="modo-icono"><i class="fas fa-times"></i></span><strong>LOCO (5 números):</strong> marca exactamente 5 números cualesquiera.</li>
+                            <li><span class="modo-icono"><i class="fas fa-square"></i></span><strong>Tabla Llena:</strong> marca todos los números de tu tabla.</li>
+                        </ul>
+                    </div>
+                    <label class="no-mostrar">
+                        <input type="checkbox" id="chkNoMostrarTutorial">
+                        No volver a mostrar
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnOmitirTutorial" class="btn btn-secondary">Omitir</button>
+                    <button id="btnCerrarTutorial" class="btn btn-primary">Entendido</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal para ingresar nombre -->
         <div id="modalNombre" class="modal oculta">
             <div class="modal-content modal-nombre">
