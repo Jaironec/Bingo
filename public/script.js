@@ -377,7 +377,6 @@ function manejarNumeroMarcado(data) {
 
 function manejarBingoDeclarado(ganador) {
     mostrarModalBingo(ganador);
-    // Añadir ganador a salaActual si no está
     if (salaActual) {
         salaActual.ganadores = salaActual.ganadores || [];
         const yaExiste = salaActual.ganadores.some(g => g.jugador && g.jugador.id === ganador.jugador.id && g.patron === ganador.patron);
@@ -386,10 +385,60 @@ function manejarBingoDeclarado(ganador) {
     actualizarListaGanadores();
     mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${ganador.resultado.tipo}!`, 'exito');
     playBingo();
+
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
+    } else {
+        // Cuenta regresiva en el modal de bingo y luego mostrar ganadores finales 5s
+        iniciarCuentaRegresivaFinal(5);
     }
+}
+
+function iniciarCuentaRegresivaFinal(segundos) {
+    const modal = document.getElementById('modalBingo');
+    const btnCerrar = document.getElementById('btnCerrarModal');
+    if (segundos > 0) {
+        btnCerrar.textContent = `Volviendo en ${segundos}...`;
+        btnCerrar.classList.add('temporizador');
+        setTimeout(() => iniciarCuentaRegresivaFinal(segundos - 1), 1000);
+    } else {
+        btnCerrar.textContent = 'Cerrar';
+        btnCerrar.classList.remove('temporizador');
+        // Cerrar modal de bingo y abrir el de ganadores finales
+        if (!modal.classList.contains('oculta')) modal.classList.add('oculta');
+        mostrarModalGanadoresFinal();
+    }
+}
+
+function mostrarModalGanadoresFinal() {
+    const modal = document.getElementById('modalGanadoresFinal');
+    const contenedor = document.getElementById('ganadoresFinales');
+    contenedor.innerHTML = '';
+    if (salaActual && salaActual.ganadores && salaActual.ganadores.length > 0) {
+        // Ordenar por momento de llegada (ya lo están) y mostrar tarjetas simples
+        salaActual.ganadores.forEach(g => {
+            const card = document.createElement('div');
+            card.className = 'ganador-categoria';
+            card.innerHTML = `
+                <div class="icono-categoria ${g.patron}">${obtenerIconoPatron(g.patron)}</div>
+                <div class="info-ganador">
+                    <div class="nombre-ganador">${g.jugador.nombre}</div>
+                    <div class="tipo-ganador">${obtenerNombrePatron(g.patron)}</div>
+                </div>
+            `;
+            contenedor.appendChild(card);
+        });
+    } else {
+        contenedor.innerHTML = '<div style="text-align:center;color:#718096">No hubo ganadores</div>';
+    }
+    modal.classList.remove('oculta');
+
+    // Mantener 5 segundos y volver al inicio
+    setTimeout(() => {
+        modal.classList.add('oculta');
+        volverInicio();
+    }, 5000);
 }
 
 function iniciarTemporizadorModal(segundos) {
