@@ -8,6 +8,7 @@ let numerosCantados = [];
 let nombrePendiente = null;
 let accionPendiente = null; // 'crearSala' o 'unirseSala'
 let ultimaNotificacion = { texto: '', tiempo: 0 };
+let ultimoEventoHist = { texto: '', tiempo: 0 };
 
 // Función para obtener letra B-I-N-G-O según el número
 function obtenerLetraBingo(numero) {
@@ -90,6 +91,7 @@ function inicializarSocket() {
     socket.on('salaConfigurada', manejarSalaConfigurada);
     socket.on('juegoTerminado', manejarJuegoTerminado);
     socket.on('juegoReanudado', manejarJuegoReanudado);
+    socket.on('estadoJuego', manejarEstadoJuego);
     socket.on('error', manejarError);
     socket.on('tablaSeleccionada', manejarTablaSeleccionada);
 }
@@ -546,6 +548,15 @@ function manejarJuegoReanudado(data) {
 function manejarError(data) {
     mostrarNotificacion(data.mensaje, 'error');
     playError();
+}
+
+function manejarEstadoJuego(data) {
+    if (!data) return;
+    if (data.estado === 'pausa') {
+        agregarEventoHistorial(`⏸️ Juego en pausa por ${data.por || 'anfitrión'}`);
+    } else if (data.estado === 'reanudado') {
+        agregarEventoHistorial(`⏯️ Juego reanudado por ${data.por || 'anfitrión'}`);
+    }
 }
 
 // Funciones de UI
@@ -1078,6 +1089,9 @@ function manejarJuegoReanudado(data) {
 function agregarEventoHistorial(texto) {
     const lista = document.getElementById('historialEventos');
     if (!lista) return;
+    const ahora = Date.now();
+    if (ultimoEventoHist.texto === texto && (ahora - ultimoEventoHist.tiempo) < 2000) return;
+    ultimoEventoHist = { texto, tiempo: ahora };
     const item = document.createElement('div');
     item.className = 'hist-item';
     const hora = new Date();
@@ -1085,7 +1099,6 @@ function agregarEventoHistorial(texto) {
     const mm = String(hora.getMinutes()).padStart(2, '0');
     item.innerHTML = `<span class="hist-time">[${hh}:${mm}]</span> ${texto}`;
     lista.prepend(item);
-    // Limitar a 20 eventos
     while (lista.childElementCount > 20) lista.lastElementChild.remove();
 }
 

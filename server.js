@@ -470,7 +470,8 @@ io.on('connection', (socket) => {
     const sala = salas.get(data.salaId);
     if (!sala || sala.anfitrion !== socket.id) return;
     sala.juegoActivo = false;
-    io.to(data.salaId).emit('juegoReanudado', { mensaje: 'Juego en pausa' });
+    const anfitrion = sala.jugadores.find(j => j.id === socket.id);
+    io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: anfitrion?.nombre || 'anfitrión' });
   });
 
   // Reanudar juego (solo anfitrión)
@@ -478,7 +479,8 @@ io.on('connection', (socket) => {
     const sala = salas.get(data.salaId);
     if (!sala || sala.anfitrion !== socket.id) return;
     sala.juegoActivo = true;
-    io.to(data.salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+    const anfitrion = sala.jugadores.find(j => j.id === socket.id);
+    io.to(data.salaId).emit('estadoJuego', { estado: 'reanudado', por: anfitrion?.nombre || 'anfitrión' });
   });
   
   // Desconexión
