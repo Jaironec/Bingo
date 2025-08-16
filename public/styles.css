@@ -6,7 +6,7 @@
 }
 
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     color: #333;
@@ -1498,3 +1498,48 @@ body {
     .container, .container-juego { padding: 16px; }
     .juego-content { grid-template-columns: 1fr; }
 }
+
+/* Mini tablas en selección */
+.tabla-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.tabla-mini-title {
+    font-weight: 700;
+    color: #2d3748;
+}
+.mini-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    width: 100%;
+    max-width: 180px;
+}
+.mini-grid .numero {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    .mini-grid { max-width: 150px; gap: 3px; }
+}
+
+/* Refinado de paddings y tipografía */
+body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+.header h1, .header h2 { line-height: 1.2; }
+.container .header, .container-juego .header-juego { margin-bottom: 16px; }
+.panel-izquierdo, .panel-central, .panel-derecho { padding: 16px; }
+.juego-content { gap: 16px; }
+.numero-grande { font-weight: 800; letter-spacing: 1px; }
+
+/* Botones consistentes */
+.btn { border-radius: 10px; font-weight: 600; }

@@ -569,8 +569,8 @@ function crearElementoTabla(tabla) {
     }
     
     div.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">Tabla ${tabla.id + 1}</div>
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;">
+        <div class="tabla-mini-title">Tabla ${tabla.id + 1}</div>
+        <div class="mini-grid">
             ${tabla.numeros.map(fila => 
                 fila.map(celda => `<span class="numero">${celda.numero}</span>`).join('')
             ).join('')}
@@ -974,5 +974,18 @@ function volverInicio() {
 }
 
 function pausarJuego() {
-    mostrarNotificacion('Función de pausa en desarrollo', 'info');
+    if (!salaActual) return;
+    const btn = document.getElementById('btnPausar');
+    const pausado = btn.dataset.pausado === 'true';
+    if (pausado) {
+        // reanudar localmente; el servidor continúa el canto en su loop
+        btn.dataset.pausado = 'false';
+        btn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+        mostrarNotificacion('Reanudando juego...', 'info');
+        // Opcional: podríamos emitir un evento si controláramos pausa del server
+    } else {
+        btn.dataset.pausado = 'true';
+        btn.innerHTML = '<i class="fas fa-play"></i> Reanudar';
+        mostrarNotificacion('Pausa local activada. Puedes seguir viendo el avance del canto.', 'info');
+    }
 }
