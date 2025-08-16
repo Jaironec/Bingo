@@ -187,7 +187,8 @@ io.on('connection', (socket) => {
         patrones: data.patrones || ['linea', 'tablaLlena', 'cuatroEsquinas'],
         velocidadCanto: data.velocidadCanto || 3000
       },
-      ganadores: []
+      ganadores: [],
+      _ultimaActividad: Date.now() // Para persistencia breve
     };
     
     // Agregar al anfitrión como jugador también
@@ -325,6 +326,7 @@ io.on('connection', (socket) => {
   socket.on('marcarNumero', (data) => {
     const sala = salas.get(data.salaId);
     if (!sala) return;
+    sala._ultimaActividad = Date.now();
     
     const jugador = sala.jugadores.find(j => j.id === socket.id);
     if (!jugador || !jugador.tablaSeleccionada) return;
@@ -358,6 +360,7 @@ io.on('connection', (socket) => {
   socket.on('declararBingo', (data) => {
     const sala = salas.get(data.salaId);
     if (!sala || !sala.juegoActivo) return;
+    sala._ultimaActividad = Date.now();
     
     const jugador = sala.jugadores.find(j => j.id === socket.id);
     if (!jugador || !jugador.tablaSeleccionada) return;
@@ -504,6 +507,18 @@ io.on('connection', (socket) => {
   });
 });
 
+// Persistencia breve en memoria (limpieza por inactividad)
+const EXPIRA_MS = 5 * 60 * 1000; // 5 minutos
+setInterval(() => {
+  const ahora = Date.now();
+  salas.forEach((sala, id) => {
+    if (!sala._ultimaActividad) sala._ultimaActividad = ahora;
+    if (ahora - (sala._ultimaActividad || ahora) > EXPIRA_MS && !sala.juegoActivo) {
+      salas.delete(id);
+    }
+  });
+}, 60 * 1000);
+
 // Función para obtener letra B-I-N-G-O según el número
 function obtenerLetraBingo(numero) {
   if (numero >= 1 && numero <= 15) return 'B';
@@ -570,9 +585,7 @@ app.get('/api/salas', (req, res) => {
 
 app.get('/api/sala/:id', (req, res) => {
   const sala = salas.get(req.params.id);
-  if (!sala) {
-    return res.status(404).json({ error: 'Sala no encontrada' });
-  }
+  if (!sala) return res.status(404).json({ error: 'Sala no encontrada' });
   res.json(sala);
 });
 
