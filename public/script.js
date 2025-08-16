@@ -7,6 +7,7 @@ let numerosMarcados = [];
 let numerosCantados = [];
 let nombrePendiente = null;
 let accionPendiente = null; // 'crearSala' o 'unirseSala'
+let ultimaNotificacion = { texto: '', tiempo: 0 };
 
 // Función para obtener letra B-I-N-G-O según el número
 function obtenerLetraBingo(numero) {
@@ -497,10 +498,11 @@ function mostrarListaJugadoresSeleccion() {
             }
             const estadoTabla = jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Seleccionando...';
             const tipoBadge = jugador.tablaSeleccionada ? 'tabla' : 'seleccionando';
+            const crown = jugador.id === salaActual.anfitrion ? '<i class="fas fa-crown crown" title="Anfitrión"></i>' : '';
             div.innerHTML = `
                 <div class="avatar">${jugador.nombre.charAt(0).toUpperCase()}</div>
                 <div>
-                    <div style="font-weight: 500;">${jugador.nombre}</div>
+                    <div style="font-weight: 600; display:flex; align-items:center; gap:6px;">${jugador.nombre} ${crown}</div>
                     <div class="badge-estado ${tipoBadge}">${estadoTabla}</div>
                 </div>
             `;
@@ -573,11 +575,12 @@ function actualizarListaJugadores() {
         }
         const estadoTabla = jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Seleccionando...';
         const tipoBadge = jugador.tablaSeleccionada ? 'tabla' : 'seleccionando';
+        const crown = jugador.id === salaActual.anfitrion ? '<i class="fas fa-crown crown" title="Anfitrión"></i>' : '';
         
         div.innerHTML = `
             <div class="avatar">${jugador.nombre.charAt(0).toUpperCase()}</div>
             <div>
-                <div style="font-weight: 500;">${jugador.nombre}</div>
+                <div style="font-weight: 600; display:flex; align-items:center; gap:6px;">${jugador.nombre} ${crown}</div>
                 <div class="badge-estado ${tipoBadge}">${estadoTabla}</div>
             </div>
         `;
@@ -843,12 +846,24 @@ function cancelarNombre() {
 }
 
 function mostrarNotificacion(mensaje, tipo = 'info') {
+    const ahora = Date.now();
+    // Evitar spam del mismo mensaje en menos de 1.5s
+    if (ultimaNotificacion.texto === mensaje && (ahora - ultimaNotificacion.tiempo) < 1500) {
+        return;
+    }
+    ultimaNotificacion = { texto: mensaje, tiempo: ahora };
+
     const notificaciones = document.getElementById('notificaciones');
     const notificacion = document.createElement('div');
     notificacion.className = `notificacion ${tipo}`;
     notificacion.textContent = mensaje;
     
     notificaciones.appendChild(notificacion);
+
+    // Limitar a 3 notificaciones visibles
+    while (notificaciones.childElementCount > 3) {
+        notificaciones.firstElementChild.remove();
+    }
     
     if (tipo === 'exito') {
         playSuccess();
@@ -860,7 +875,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     
     setTimeout(() => {
         notificacion.remove();
-    }, 5000);
+    }, 4000);
 }
 
 // Funciones auxiliares

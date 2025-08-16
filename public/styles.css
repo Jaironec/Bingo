@@ -857,9 +857,12 @@ body {
 /* Notificaciones */
 .notificaciones {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1001;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1100;
 }
 
 .notificacion {
@@ -1398,4 +1401,32 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 15px;
     margin-bottom: 20px;
+}
+
+/* Corona para anfitrión */
+.crown {
+    color: #f6ad55;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.1);
+}
+
+/* Notificaciones: maximo 3 en stack, espaciado menor en móvil */
+.notificaciones {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1100;
+}
+
+@media (max-width: 480px) {
+    .notificaciones {
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: 10px;
+        gap: 6px;
+        align-items: stretch;
+    }
 }
