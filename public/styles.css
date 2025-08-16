@@ -1482,7 +1482,7 @@ body {
     gap: 10px;
     width: auto; /* ancho según contenido */
     max-width: none;
-    padding: 20px;
+    padding: 10px;
 }
 
 .mini-grid {
