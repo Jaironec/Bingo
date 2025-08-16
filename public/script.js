@@ -415,16 +415,12 @@ function manejarBingoDeclarado(ganador) {
         const yaExiste = salaActual.ganadores.some(g => g.jugador && g.jugador.id === ganador.jugador.id && g.patron === ganador.patron);
         if (!yaExiste) salaActual.ganadores.push(ganador);
     }
-    actualizarListaGanadores();
     // Historial
     agregarEventoHistorial(`🏆 ${ganador.jugador.nombre} ganó ${obtenerNombrePatron(ganador.patron)}`);
     mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${ganador.resultado.tipo}!`, 'exito');
     playBingo();
-    // Deshabilitar el botón del patrón ganado para todos y mostrar tag
     const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
     if (btn) btn.disabled = true;
-    const tag = document.querySelector(`.tag-ganado[data-tag="${ganador.patron}"]`);
-    if (tag) tag.style.display = 'block';
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
@@ -533,19 +529,17 @@ function actualizarBotonesBingo(patrones) {
             btn.style.display = 'none';
             btn.disabled = true;
         }
-        const tag = document.querySelector(`.tag-ganado[data-tag="${patron}"]`);
-        if (tag) tag.style.display = 'none';
     });
 }
 
 function manejarJuegoTerminado(data) {
+    agregarEventoHistorial('⏹️ El juego terminó');
     mostrarNotificacion(data.mensaje, 'exito');
-    setTimeout(() => {
-        volverInicio();
-    }, 5000); // esperar 5s para volver al inicio cuando termina por tabla llena o sin números
+    setTimeout(() => { volverInicio(); }, 5000); // esperar 5s para volver al inicio cuando termina por tabla llena o sin números
 }
 
 function manejarJuegoReanudado(data) {
+    agregarEventoHistorial(data.mensaje.includes('pausa') ? '⏸️ Juego en pausa' : '⏯️ Juego reanudado');
     mostrarNotificacion(data.mensaje, 'info');
 }
 
@@ -897,6 +891,7 @@ function manejarTablaSeleccionada(data) {
     
     mostrarListaJugadoresSeleccion();
     actualizarListaJugadores();
+    agregarEventoHistorial(`🎴 ${jugadorActual?.nombre || 'Jugador'} seleccionó la tabla ${data.tabla.id + 1}`);
     mostrarNotificacion(`Seleccionaste la tabla ${data.tabla.id + 1}`, 'exito');
     
     if (salaActual.juegoActivo) {
