@@ -1557,3 +1557,17 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .modal-tutorial { animation: tutorialIn 300ms ease-out; }
 @keyframes tutorialIn { from { transform: translateY(12px); opacity: 0;} to { transform: translateY(0); opacity: 1;} }
 .tutorial-modos li { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 10px; border-radius: 8px; }
+
+/* Estilo para casilla FREE (centro) */
+.celda-bingo.free, .mini-grid .numero.free, .tabla-bingo-mini .numero.free {
+    background: linear-gradient(135deg, #fefcbf 0%, #faf089 100%);
+    color: #744210;
+    border: 1px solid #ecc94b;
+    position: relative;
+}
+.celda-bingo.free i, .mini-grid .numero.free i, .tabla-bingo-mini .numero.free i {
+    font-size: 0.9em;
+}
+.celda-bingo.free::after, .mini-grid .numero.free::after, .tabla-bingo-mini .numero.free::after {
+    content: '';
+}
