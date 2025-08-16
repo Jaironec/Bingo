@@ -1540,3 +1540,11 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .tutorial-steps li::marker { color: #667eea; font-weight: 700; }
 .tutorial-modos li { display: flex; align-items: center; gap: 8px; }
 .tutorial-modos strong { margin-right: 6px; }
+
+/* Panel central remaquetado para botones adicionales */
+.panel-central {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+}
+.botones-patron { grid-template-columns: repeat(2, 1fr); gap: 10px; }

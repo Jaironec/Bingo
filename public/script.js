@@ -445,16 +445,18 @@ function mostrarModalGanadoresFinal() {
     const modal = document.getElementById('modalGanadoresFinal');
     const contenedor = document.getElementById('ganadoresFinales');
     contenedor.innerHTML = '';
-    if (salaActual && salaActual.ganadores && salaActual.ganadores.length > 0) {
-        // Ordenar por momento de llegada (ya lo están) y mostrar tarjetas simples
-        salaActual.ganadores.forEach(g => {
+    const lista = (salaActual && Array.isArray(salaActual.ganadores)) ? salaActual.ganadores : [];
+    if (lista.length > 0) {
+        lista.forEach(g => {
             const card = document.createElement('div');
             card.className = 'ganador-categoria';
+            const icono = obtenerIconoPatron(g.patron);
+            const nombrePatron = obtenerNombrePatron(g.patron);
             card.innerHTML = `
-                <div class="icono-categoria ${g.patron}">${obtenerIconoPatron(g.patron)}</div>
+                <div class="icono-categoria ${g.patron}">${icono}</div>
                 <div class="info-ganador">
                     <div class="nombre-ganador">${g.jugador.nombre}</div>
-                    <div class="tipo-ganador">${obtenerNombrePatron(g.patron)}</div>
+                    <div class="tipo-ganador">${nombrePatron}</div>
                 </div>
             `;
             contenedor.appendChild(card);
@@ -463,8 +465,6 @@ function mostrarModalGanadoresFinal() {
         contenedor.innerHTML = '<div style="text-align:center;color:#718096">No hubo ganadores</div>';
     }
     modal.classList.remove('oculta');
-
-    // Mantener 5 segundos y volver al inicio
     setTimeout(() => {
         modal.classList.add('oculta');
         volverInicio();
@@ -802,11 +802,10 @@ function mostrarModalBingo(ganador) {
 
 function esGanadorEnPatron(patron, resultado, filaIndex, colIndex, esMarcado) {
     if (!esMarcado) return false;
-    
     switch (patron) {
         case 'linea':
-            if (resultado.fila && resultado.fila === filaIndex + 1) return true;
-            if (resultado.columna && resultado.columna === colIndex + 1) return true;
+            if (resultado.fila && (resultado.fila - 1) === filaIndex) return true; // horizontal
+            if (resultado.columna && (resultado.columna - 1) === colIndex) return true; // vertical
             if (resultado.diagonal === 'principal' && filaIndex === colIndex) return true;
             if (resultado.diagonal === 'secundaria' && filaIndex + colIndex === 4) return true;
             break;
@@ -817,6 +816,17 @@ function esGanadorEnPatron(patron, resultado, filaIndex, colIndex, esMarcado) {
             return true;
         case 'tablaLlena':
             return true;
+        case 'machetaso':
+            // Pasa por el centro (2,2). Puede ser diagonal principal o secundaria
+            if (filaIndex === 2 && colIndex === 2) return true;
+            if (resultado && (resultado.diagonal === 'principal' || resultado.diagonal === 'secundaria')) {
+                if (resultado.diagonal === 'principal' && filaIndex === colIndex) return true;
+                if (resultado.diagonal === 'secundaria' && filaIndex + colIndex === 4) return true;
+            } else {
+                // Si no llegó con detalle de diagonal, resaltar ambas pasando por el centro
+                if (filaIndex === colIndex || filaIndex + colIndex === 4) return true;
+            }
+            break;
     }
     return false;
 }
