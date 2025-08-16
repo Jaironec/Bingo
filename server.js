@@ -230,17 +230,42 @@ io.on('connection', (socket) => {
     const jugador = sala.jugadores.find(j => j.id === socket.id);
     if (!jugador) return;
     
-    const tabla = sala.tablas.find(t => t.id === data.tablaId);
-    if (!tabla || !tabla.disponible) {
+    const nuevaTabla = sala.tablas.find(t => t.id === data.tablaId);
+    if (!nuevaTabla) {
+      socket.emit('error', { mensaje: 'Tabla no encontrada' });
+      return;
+    }
+
+    // Si intenta seleccionar la misma tabla, solo confirmar
+    if (jugador.tablaSeleccionada && jugador.tablaSeleccionada.id === nuevaTabla.id) {
+      socket.emit('tablaSeleccionada', { tabla: jugador.tablaSeleccionada });
+      return;
+    }
+    
+    if (!nuevaTabla.disponible) {
       socket.emit('error', { mensaje: 'Tabla no disponible' });
       return;
     }
     
-    tabla.disponible = false;
-    jugador.tablaSeleccionada = tabla;
+    // Liberar tabla anterior del jugador si existía
+    if (jugador.tablaSeleccionada) {
+      const anterior = sala.tablas.find(t => t.id === jugador.tablaSeleccionada.id);
+      if (anterior) {
+        anterior.disponible = true;
+        io.to(data.salaId).emit('tablaLiberada', { tablaId: anterior.id });
+      }
+    }
     
-    socket.emit('tablaSeleccionada', { tabla });
+    // Asignar nueva tabla
+    nuevaTabla.disponible = false;
+    jugador.tablaSeleccionada = nuevaTabla;
+    
+    // Confirmar al jugador su selección
+    socket.emit('tablaSeleccionada', { tabla: nuevaTabla });
+    
+    // Notificar a los demás sobre el estado de la tabla y del jugador
     socket.to(data.salaId).emit('tablaOcupada', { tablaId: data.tablaId });
+    io.to(data.salaId).emit('jugadorSeleccionoTabla', { jugadorId: jugador.id, tabla: nuevaTabla });
     
     console.log(`Jugador ${jugador.nombre} seleccionó tabla ${data.tablaId}`);
   });
