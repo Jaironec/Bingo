@@ -96,16 +96,16 @@ function verificarBingo(tabla, numerosMarcados, patron) {
   
   switch (patron) {
     case 'linea':
-      // Verificar líneas horizontales
-      for (let fila = 0; fila < 5; fila++) {
-        if (tabla[fila].every(celda => numerosSet.has(celda.numero))) {
-          return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
-        }
-      }
-      // Verificar líneas verticales
+      // Verificar líneas verticales primero
       for (let col = 0; col < 5; col++) {
         if (tabla.every(fila => numerosSet.has(fila[col].numero))) {
           return { ganado: true, tipo: 'línea vertical', columna: col + 1 };
+        }
+      }
+      // Luego líneas horizontales
+      for (let fila = 0; fila < 5; fila++) {
+        if (tabla[fila].every(celda => numerosSet.has(celda.numero))) {
+          return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
         }
       }
       // Verificar diagonales
@@ -143,10 +143,14 @@ function verificarBingo(tabla, numerosMarcados, patron) {
       break;
 
     case 'machetaso':
-      // Diagonal que pasa por el centro (principal)
-      if (tabla[0][0] && tabla[1][1] && tabla[2][2] && tabla[3][3] && tabla[4][4] &&
-          numerosSet.has(tabla[0][0].numero) && numerosSet.has(tabla[1][1].numero) &&
-          numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][3].numero) && numerosSet.has(tabla[4][4].numero)) {
+      // Cualquiera de las diagonales que pasan por el centro
+      const diagonalPrincipal = tabla[0][0] && tabla[1][1] && tabla[2][2] && tabla[3][3] && tabla[4][4] &&
+        numerosSet.has(tabla[0][0].numero) && numerosSet.has(tabla[1][1].numero) &&
+        numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][3].numero) && numerosSet.has(tabla[4][4].numero);
+      const diagonalSecundaria = tabla[0][4] && tabla[1][3] && tabla[2][2] && tabla[3][1] && tabla[4][0] &&
+        numerosSet.has(tabla[0][4].numero) && numerosSet.has(tabla[1][3].numero) &&
+        numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][1].numero) && numerosSet.has(tabla[4][0].numero);
+      if (diagonalPrincipal || diagonalSecundaria) {
         return { ganado: true, tipo: 'machetaso (diagonal central)' };
       }
       break;
