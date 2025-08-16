@@ -974,18 +974,26 @@ function volverInicio() {
 }
 
 function pausarJuego() {
-    if (!salaActual) return;
+    if (!salaActual || !jugadorActual || !jugadorActual.esAnfitrion) return;
     const btn = document.getElementById('btnPausar');
     const pausado = btn.dataset.pausado === 'true';
     if (pausado) {
-        // reanudar localmente; el servidor continúa el canto en su loop
         btn.dataset.pausado = 'false';
         btn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
-        mostrarNotificacion('Reanudando juego...', 'info');
-        // Opcional: podríamos emitir un evento si controláramos pausa del server
+        socket.emit('reanudarJuego', { salaId: salaActual.id });
     } else {
         btn.dataset.pausado = 'true';
         btn.innerHTML = '<i class="fas fa-play"></i> Reanudar';
-        mostrarNotificacion('Pausa local activada. Puedes seguir viendo el avance del canto.', 'info');
+        socket.emit('pausarJuego', { salaId: salaActual.id });
     }
+}
+
+function manejarJuegoReanudado(data) {
+    mostrarNotificacion(data.mensaje, 'info');
+    // Sincronizar texto del botón en todos los clientes
+    const btn = document.getElementById('btnPausar');
+    if (!btn) return;
+    const enPausa = data.mensaje.includes('pausa');
+    btn.dataset.pausado = enPausa ? 'true' : 'false';
+    btn.innerHTML = enPausa ? '<i class="fas fa-play"></i> Reanudar' : '<i class="fas fa-pause"></i> Pausar';
 }
