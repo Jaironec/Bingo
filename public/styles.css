@@ -444,7 +444,7 @@ body {
 /* Grid de tablas */
 .grid-tablas {
     display: grid;
-    grid-template-columns: repeat(7, 160px);
+    grid-template-columns: repeat(7, 140px);
     gap: 12px;
     margin-bottom: 20px;
     justify-content: center;
@@ -462,7 +462,7 @@ body {
     transition: all 0.3s ease;
     text-align: center;
     touch-action: manipulation;
-    width: 160px;
+    width: 140px;
     box-sizing: border-box;
 }
 
@@ -1487,14 +1487,14 @@ body {
 
 .mini-grid {
     display: inline-grid;
-    grid-template-columns: repeat(5, 26px);
+    grid-template-columns: repeat(5, 22px);
     gap: 4px;
     margin: 0 auto;
 }
 
 .mini-grid .numero {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1502,7 +1502,7 @@ body {
     border: 1px solid #e2e8f0;
     border-radius: 4px;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 10px;
     box-sizing: border-box;
 }
 
