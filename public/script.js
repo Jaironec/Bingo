@@ -376,20 +376,19 @@ function manejarNumeroMarcado(data) {
 }
 
 function manejarBingoDeclarado(ganador) {
-    console.log('🏆 Bingo declarado:', ganador);
     mostrarModalBingo(ganador);
+    // Añadir ganador a salaActual si no está
+    if (salaActual) {
+        salaActual.ganadores = salaActual.ganadores || [];
+        const yaExiste = salaActual.ganadores.some(g => g.jugador && g.jugador.id === ganador.jugador.id && g.patron === ganador.patron);
+        if (!yaExiste) salaActual.ganadores.push(ganador);
+    }
     actualizarListaGanadores();
     mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${ganador.resultado.tipo}!`, 'exito');
-    
-    // Reproducir sonido de bingo
     playBingo();
-    
-    // Auto-cerrar modal después de 5 segundos con temporizador (excepto para tabla llena)
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
-        setTimeout(() => {
-            mostrarNotificacion('El juego se pausa por 5 segundos...', 'info');
-        }, 1000);
+        setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     }
 }
 
@@ -453,10 +452,9 @@ function actualizarBotonesBingo(patrones) {
 
 function manejarJuegoTerminado(data) {
     mostrarNotificacion(data.mensaje, 'exito');
-    // Volver a inicio después de un breve tiempo
     setTimeout(() => {
         volverInicio();
-    }, 2500);
+    }, 5000); // esperar 5s para volver al inicio cuando termina por tabla llena o sin números
 }
 
 function manejarJuegoReanudado(data) {
@@ -890,14 +888,14 @@ function obtenerPatronesSeleccionados() {
 
 function actualizarVelocidad() {
     const velocidad = document.getElementById('velocidadCanto').value;
-    const segundos = velocidad / 1000;
+    const segundos = (velocidad / 1000).toFixed(1);
     document.getElementById('velocidadTexto').textContent = `${segundos} segundos`;
 }
 
 function actualizarVelocidadRapida() {
     const velocidad = document.getElementById('velocidadCantoRapido').value;
     const velocidadTexto = document.getElementById('velocidadTextoRapido');
-    velocidadTexto.textContent = `${Math.round(velocidad / 1000)}s`;
+    velocidadTexto.textContent = `${(velocidad/1000).toFixed(1)}s`;
 }
 
 function iniciarJuegoRapido() {
