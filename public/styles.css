@@ -444,9 +444,10 @@ body {
 /* Grid de tablas */
 .grid-tablas {
     display: grid;
-    grid-template-columns: repeat(7, minmax(120px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(7, 160px);
+    gap: 12px;
     margin-bottom: 20px;
+    justify-content: center;
     justify-items: center;
     align-items: start;
 }
@@ -456,13 +457,12 @@ body {
     background: white;
     border: 2px solid #e2e8f0;
     border-radius: 10px;
-    padding: 18px; /* más espacio interno para contener correctamente */
+    padding: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
     touch-action: manipulation;
-    width: 100%;
-    max-width: 260px; /* más ancho para desktop */
+    width: 160px;
     box-sizing: border-box;
 }
 
@@ -1052,21 +1052,6 @@ body {
         padding: 8px 4px;
     }
 
-    .grid-tablas {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-    }
-
-    .tabla-mini {
-        padding: 14px;
-    }
-
-    .tabla-mini .numero {
-        width: 22px;
-        height: 22px;
-        line-height: 22px;
-        font-size: 1rem;
-    }
 }
 
 @media (max-width: 480px) {
@@ -1126,14 +1111,6 @@ body {
         font-size: 1.2rem;
     }
 
-    .grid-tablas {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-
-    .tabla-mini {
-        padding: 12px;
-    }
 }
 
 /* Tabla del ganador en modal */
@@ -1509,23 +1486,23 @@ body {
 }
 
 .mini-grid {
-    display: inline-grid; /* se centra mejor con width auto */
-    grid-template-columns: repeat(5, 42px); /* celdas de ancho fijo para evitar redondeo */
-    gap: 6px;
-    margin: 0 auto; /* centrar el grid dentro de la tarjeta */
+    display: inline-grid;
+    grid-template-columns: repeat(5, 26px);
+    gap: 4px;
+    margin: 0 auto;
 }
 
 .mini-grid .numero {
-    width: 42px;
-    height: 42px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 11px;
     box-sizing: border-box;
 }
 
