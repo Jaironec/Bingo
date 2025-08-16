@@ -108,17 +108,6 @@ function verificarBingo(tabla, numerosMarcados, patron) {
           return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
         }
       }
-      // Verificar diagonales
-      if (tabla[0][0] && tabla[1][1] && tabla[2][2] && tabla[3][3] && tabla[4][4] &&
-          numerosSet.has(tabla[0][0].numero) && numerosSet.has(tabla[1][1].numero) && 
-          numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][3].numero) && numerosSet.has(tabla[4][4].numero)) {
-        return { ganado: true, tipo: 'línea diagonal', diagonal: 'principal' };
-      }
-      if (tabla[0][4] && tabla[1][3] && tabla[2][2] && tabla[3][1] && tabla[4][0] &&
-          numerosSet.has(tabla[0][4].numero) && numerosSet.has(tabla[1][3].numero) && 
-          numerosSet.has(tabla[2][2].numero) && numerosSet.has(tabla[3][1].numero) && numerosSet.has(tabla[4][0].numero)) {
-        return { ganado: true, tipo: 'línea diagonal', diagonal: 'secundaria' };
-      }
       break;
       
     case 'tablaLlena':

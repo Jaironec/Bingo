@@ -435,9 +435,8 @@ function iniciarCuentaRegresivaFinal(segundos) {
     } else {
         btnCerrar.textContent = 'Cerrar';
         btnCerrar.classList.remove('temporizador');
-        // Cerrar modal de bingo y abrir el de ganadores finales
         if (!modal.classList.contains('oculta')) modal.classList.add('oculta');
-        mostrarModalGanadoresFinal();
+        volverInicio();
     }
 }
 
@@ -804,10 +803,8 @@ function esGanadorEnPatron(patron, resultado, filaIndex, colIndex, esMarcado) {
     if (!esMarcado) return false;
     switch (patron) {
         case 'linea':
-            if (resultado.fila && (resultado.fila - 1) === filaIndex) return true; // horizontal
-            if (resultado.columna && (resultado.columna - 1) === colIndex) return true; // vertical
-            if (resultado.diagonal === 'principal' && filaIndex === colIndex) return true;
-            if (resultado.diagonal === 'secundaria' && filaIndex + colIndex === 4) return true;
+            if (resultado.fila && (resultado.fila - 1) === filaIndex) return true;
+            if (resultado.columna && (resultado.columna - 1) === colIndex) return true;
             break;
         case 'cuatroEsquinas':
             if ((filaIndex === 0 || filaIndex === 4) && (colIndex === 0 || colIndex === 4)) return true;
@@ -817,16 +814,13 @@ function esGanadorEnPatron(patron, resultado, filaIndex, colIndex, esMarcado) {
         case 'tablaLlena':
             return true;
         case 'machetaso':
-            // Pasa por el centro (2,2). Puede ser diagonal principal o secundaria
-            if (filaIndex === 2 && colIndex === 2) return true;
-            if (resultado && (resultado.diagonal === 'principal' || resultado.diagonal === 'secundaria')) {
-                if (resultado.diagonal === 'principal' && filaIndex === colIndex) return true;
-                if (resultado.diagonal === 'secundaria' && filaIndex + colIndex === 4) return true;
-            } else {
-                // Si no llegó con detalle de diagonal, resaltar ambas pasando por el centro
-                if (filaIndex === colIndex || filaIndex + colIndex === 4) return true;
-            }
-            break;
+            // Solo resaltar la diagonal completa que ganó (usar info de resultado.diagonal si existe)
+            const esPrincipal = (resultado && resultado.diagonal === 'principal');
+            const esSecundaria = (resultado && resultado.diagonal === 'secundaria');
+            if (esPrincipal && filaIndex === colIndex) return true;
+            if (esSecundaria && (filaIndex + colIndex === 4)) return true;
+            // Si no viene detalle, por defecto no resaltar (evitar marcar ambas)
+            return false;
     }
     return false;
 }

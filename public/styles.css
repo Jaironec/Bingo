@@ -1548,3 +1548,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     gap: 16px;
 }
 .botones-patron { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+/* Hacer sticky los botones de bingo */
+.botones-bingo { position: sticky; bottom: 0; background: rgba(255,255,255,0.95); padding-top: 6px; border-top: 1px solid #e2e8f0; }
+.numeros-cantados { max-height: 260px; overflow: auto; }
