@@ -386,25 +386,13 @@ io.on('connection', (socket) => {
       // Solo detener el juego si es "tabla llena"
       if (data.patron === 'tablaLlena') {
         sala.juegoActivo = false; // Detener el juego permanentemente
-        console.log(`- Juego terminado permanentemente por tabla llena`);
-        io.to(data.salaId).emit('juegoTerminado', { mensaje: `¡${jugador.nombre} ganó con ${resultado.tipo}!` });
-        
-        // Mostrar modal de ganador primero
         io.to(data.salaId).emit('bingoDeclarado', ganador);
-        
-        // Después de 3 segundos, mostrar modal final
-        setTimeout(() => {
-          io.to(data.salaId).emit('mostrarModalFinal', { ganadores: sala.ganadores });
-        }, 3000);
+        io.to(data.salaId).emit('juegoTerminado', { mensaje: `¡${jugador.nombre} ganó con ${resultado.tipo}!` });
       } else {
         // Para otros patrones, pausar el canto por 5 segundos
-        sala.juegoActivo = false; // Pausar temporalmente
-        console.log(`- Juego pausado temporalmente por ${resultado.tipo}`);
-        
-        // Reanudar después de 5 segundos
+        sala.juegoActivo = false; // Pausa temporal
         setTimeout(() => {
           sala.juegoActivo = true;
-          console.log(`- Juego reanudado después de pausa`);
           io.to(data.salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
         }, 5000);
       }
@@ -425,69 +413,6 @@ io.on('connection', (socket) => {
     
     sala.configuracion = { ...sala.configuracion, ...data.configuracion };
     io.to(data.salaId).emit('salaConfigurada', { configuracion: sala.configuracion });
-  });
-  
-  // Iniciar nueva partida (solo anfitrión)
-  socket.on('iniciarNuevaPartida', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala || sala.anfitrion !== socket.id) return;
-    
-    console.log(`Iniciando nueva partida en sala ${data.salaId}`);
-    
-    // Reiniciar estado del juego
-    sala.juegoActivo = false;
-    sala.numerosCantados = [];
-    sala.ganadores = [];
-    
-    // Limpiar números marcados de todos los jugadores
-    sala.jugadores.forEach(jugador => {
-      jugador.numerosMarcados = [];
-      jugador.tablaSeleccionada = null; // Resetear tabla seleccionada
-    });
-    
-    // Generar nuevas tablas
-    sala.tablas = generarTablasUnicas();
-    
-    // Resetear disponibilidad de tablas
-    sala.tablas.forEach(tabla => {
-      tabla.disponible = true;
-    });
-    
-    // Enviar evento de nueva partida a todos
-    io.to(data.salaId).emit('nuevaPartidaIniciada', { 
-      mensaje: 'Nueva partida iniciada',
-      tablas: sala.tablas
-    });
-    
-    // Notificar SOLO a los invitados (no anfitrión) para que confirmen si quieren unirse
-    sala.jugadores.forEach(jugador => {
-      if (jugador.id !== sala.anfitrion) {
-        console.log(`Enviando confirmación de nueva partida a invitado: ${jugador.nombre}`);
-        io.to(jugador.id).emit('confirmarNuevaPartida', {
-          mensaje: 'El anfitrión ha iniciado una nueva partida. ¿Te quieres unir?'
-        });
-      }
-    });
-    
-    console.log(`Nueva partida iniciada en sala ${data.salaId}`);
-  });
-  
-  // Aceptar nueva partida (invitados)
-  socket.on('aceptarNuevaPartida', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala) return;
-    
-    console.log(`Jugador ${socket.id} aceptó la nueva partida`);
-    // El jugador ya está en la sala, solo necesita elegir nueva tabla
-  });
-  
-  // Rechazar nueva partida (invitados)
-  socket.on('rechazarNuevaPartida', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala) return;
-    
-    console.log(`Jugador ${socket.id} rechazó la nueva partida`);
-    // El jugador puede salir de la sala si lo desea
   });
   
   // Desconexión

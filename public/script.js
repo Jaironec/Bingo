@@ -62,9 +62,6 @@ function inicializarSocket() {
     socket.on('juegoReanudado', manejarJuegoReanudado);
     socket.on('error', manejarError);
     socket.on('tablaSeleccionada', manejarTablaSeleccionada);
-    socket.on('mostrarModalFinal', manejarModalFinal);
-    socket.on('nuevaPartidaIniciada', manejarNuevaPartida);
-    socket.on('confirmarNuevaPartida', manejarConfirmarNuevaPartida);
 }
 
 // Configurar event listeners
@@ -86,22 +83,21 @@ function configurarEventListeners() {
     
     // Botones del juego
     document.getElementById('btnPausar').addEventListener('click', pausarJuego);
-    document.getElementById('btnSalir').addEventListener('click', salirJuego);
-    document.getElementById('btnNuevaPartidaJuego').addEventListener('click', iniciarNuevaPartidaDesdeJuego);
+    document.getElementById('btnSalir').addEventListener('click', abrirModalSalir);
+    
+    // Modal salir
+    const btnCancelarSalir = document.getElementById('btnCancelarSalir');
+    const btnConfirmarSalir = document.getElementById('btnConfirmarSalir');
+    if (btnCancelarSalir) btnCancelarSalir.addEventListener('click', cerrarModalSalir);
+    if (btnConfirmarSalir) btnConfirmarSalir.addEventListener('click', confirmarSalir);
     
     // Botones de bingo
     document.querySelectorAll('.btn-bingo').forEach(btn => {
         btn.addEventListener('click', declararBingo);
     });
     
-    // Modal
+    // Modal de declaración de bingo
     document.getElementById('btnCerrarModal').addEventListener('click', cerrarModal);
-    document.getElementById('btnCerrarModalFinal').addEventListener('click', cerrarModalFinal);
-    document.getElementById('btnNuevaPartida').addEventListener('click', iniciarNuevaPartida);
-    
-    // Modal de confirmación nueva partida
-    document.getElementById('btnAceptarNuevaPartida').addEventListener('click', aceptarNuevaPartida);
-    document.getElementById('btnRechazarNuevaPartida').addEventListener('click', rechazarNuevaPartida);
     
     // Modal de nombre
     document.getElementById('btnConfirmarNombre').addEventListener('click', confirmarNombre);
@@ -223,29 +219,20 @@ function manejarSalaCreada(data) {
     // Mostrar el código de la sala en la pantalla de selección de tabla
     const codigoElement = document.getElementById('codigoSalaJugador');
     const nombreElement = document.getElementById('nombreJugador');
-    const numElement = document.getElementById('numJugadores');
-    
-    console.log('📝 Elementos encontrados:', {
-        codigo: codigoElement,
-        nombre: nombreElement,
-        num: numElement
-    });
     
     if (codigoElement) codigoElement.textContent = data.salaId;
     if (nombreElement) nombreElement.textContent = jugadorActual.nombre;
-    if (numElement) numElement.textContent = salaActual.jugadores.length;
     
-    // Mostrar pantalla de selección de tabla para el anfitrión también
+    // Refrescar conteos/listas
+    actualizarNumeroJugadores();
     mostrarTablasDisponibles();
+    mostrarListaJugadoresSeleccion();
     mostrarPantalla('pantallaSeleccionTabla');
     
     // Mostrar controles del anfitrión
     document.getElementById('controlesAnfitrion').classList.remove('oculta');
-    
-    // Agregar clase anfitrion al body para CSS
     document.body.classList.add('anfitrion');
     
-    console.log('✅ Sala configurada correctamente');
     mostrarNotificacion('Sala creada exitosamente. Selecciona tu tabla para jugar', 'exito');
 }
 
@@ -253,31 +240,18 @@ function manejarUnidoSala(data) {
     salaActual = data.sala;
     jugadorActual = data.jugador;
     
+    document.getElementById('codigoSalaJugador').textContent = salaActual.id;
+    document.getElementById('nombreJugador').textContent = jugadorActual.nombre;
+    
+    actualizarNumeroJugadores();
+    mostrarTablasDisponibles();
+    mostrarPantalla('pantallaSeleccionTabla');
+    
     if (jugadorActual.esAnfitrion) {
-        // Es anfitrión
-        document.getElementById('codigoSalaJugador').textContent = salaActual.id;
-        document.getElementById('nombreJugador').textContent = jugadorActual.nombre;
-        document.getElementById('numJugadores').textContent = salaActual.jugadores.length;
-        mostrarTablasDisponibles();
-        mostrarPantalla('pantallaSeleccionTabla');
-        
-        // Mostrar controles del anfitrión
         document.getElementById('controlesAnfitrion').classList.remove('oculta');
-        
-        // Agregar clase anfitrion al body para CSS
         document.body.classList.add('anfitrion');
     } else {
-        // Es jugador
-        document.getElementById('nombreJugador').textContent = jugadorActual.nombre;
-        document.getElementById('codigoSalaJugador').textContent = salaActual.id;
-        document.getElementById('numJugadores').textContent = salaActual.jugadores.length;
-        mostrarTablasDisponibles();
-        mostrarPantalla('pantallaSeleccionTabla');
-        
-        // Ocultar controles del anfitrión
         document.getElementById('controlesAnfitrion').classList.add('oculta');
-        
-        // Asegurar que no tenga clase anfitrion
         document.body.classList.remove('anfitrion');
     }
     
@@ -287,13 +261,16 @@ function manejarUnidoSala(data) {
 function manejarJugadorUnido(jugador) {
     console.log('👥 Jugador unido:', jugador);
     
-    // Actualizar la lista de jugadores en el juego
+    // Mantener el estado local actualizado
+    if (salaActual && Array.isArray(salaActual.jugadores)) {
+        const existe = salaActual.jugadores.some(j => j.id === jugador.id);
+        if (!existe) salaActual.jugadores.push(jugador);
+    }
+    
+    // Actualizar UI
     actualizarListaJugadores();
     actualizarNumeroJugadores();
-    
-    // Si estamos en la pantalla de selección de tablas, actualizar también esa lista
     if (document.getElementById('pantallaSeleccionTabla') && !document.getElementById('pantallaSeleccionTabla').classList.contains('oculta')) {
-        console.log('🔄 Actualizando lista de jugadores en selección de tablas');
         mostrarListaJugadoresSeleccion();
         actualizarNumeroJugadores();
     }
@@ -306,6 +283,11 @@ function manejarTablaOcupada(data) {
     if (tablaElement) {
         tablaElement.classList.add('ocupada');
         tablaElement.classList.remove('seleccionada');
+    }
+    // Actualizar estado local de la tabla
+    if (salaActual && salaActual.tablas) {
+        const t = salaActual.tablas.find(tt => tt.id === data.tablaId);
+        if (t) t.disponible = false;
     }
 }
 
@@ -372,12 +354,10 @@ function manejarBingoDeclarado(ganador) {
     // Auto-cerrar modal después de 5 segundos con temporizador (excepto para tabla llena)
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
-        // Mostrar notificación de pausa
         setTimeout(() => {
             mostrarNotificacion('El juego se pausa por 5 segundos...', 'info');
         }, 1000);
     }
-    // Para tabla llena, el modal se mantiene abierto hasta que se cierre manualmente
 }
 
 function iniciarTemporizadorModal(segundos) {
@@ -402,13 +382,15 @@ function iniciarTemporizadorModal(segundos) {
 function manejarJugadorDesconectado(jugador) {
     console.log('👋 Jugador desconectado:', jugador);
     
-    // Actualizar la lista de jugadores en el juego
+    // Mantener estado local actualizado
+    if (salaActual && Array.isArray(salaActual.jugadores)) {
+        salaActual.jugadores = salaActual.jugadores.filter(j => j.id !== jugador.id);
+    }
+    
+    // Actualizar UI
     actualizarListaJugadores();
     actualizarNumeroJugadores();
-    
-    // Si estamos en la pantalla de selección de tablas, actualizar también esa lista
     if (document.getElementById('pantallaSeleccionTabla') && !document.getElementById('pantallaSeleccionTabla').classList.contains('oculta')) {
-        console.log('🔄 Actualizando lista de jugadores en selección de tablas');
         mostrarListaJugadoresSeleccion();
         actualizarNumeroJugadores();
     }
@@ -418,16 +400,12 @@ function manejarJugadorDesconectado(jugador) {
 
 function manejarSalaConfigurada(data) {
     salaActual.configuracion = data.configuracion;
-    
-    // Actualizar los botones de bingo según la configuración
     actualizarBotonesBingo(data.configuracion.patrones);
-    
     mostrarNotificacion('Configuración actualizada', 'exito');
 }
 
 function actualizarBotonesBingo(patrones) {
     const botonesBingo = document.querySelectorAll('.btn-bingo');
-    
     botonesBingo.forEach(btn => {
         const patron = btn.dataset.patron;
         if (patrones.includes(patron)) {
@@ -442,11 +420,14 @@ function actualizarBotonesBingo(patrones) {
 
 function manejarJuegoTerminado(data) {
     mostrarNotificacion(data.mensaje, 'exito');
+    // Volver a inicio después de un breve tiempo
+    setTimeout(() => {
+        volverInicio();
+    }, 2500);
 }
 
 function manejarJuegoReanudado(data) {
     mostrarNotificacion(data.mensaje, 'info');
-    // El canto automático se reanuda desde el servidor
 }
 
 function manejarError(data) {
@@ -454,115 +435,10 @@ function manejarError(data) {
     playError();
 }
 
-function manejarModalFinal(data) {
-    // Cerrar el modal de bingo si está abierto
-    const modalBingo = document.getElementById('modalBingo');
-    if (!modalBingo.classList.contains('oculta')) {
-        modalBingo.classList.add('oculta');
-    }
-    
-    mostrarModalFinal(data.ganadores);
-}
-
-function manejarNuevaPartida(data) {
-    console.log('🔄 Nueva partida iniciada:', data);
-    mostrarNotificacion('¡La nueva partida ha comenzado!', 'exito');
-    
-    // Redirigir a la pantalla de selección de tablas
-    mostrarPantalla('pantallaSeleccionTabla');
-    
-    // Actualizar la información de la sala
-    if (salaActual) {
-        mostrarTablasDisponibles();
-        actualizarNumeroJugadores();
-        mostrarListaJugadoresSeleccion();
-    }
-    
-    // Mostrar el botón de nueva partida si es anfitrión
-    if (jugadorActual && jugadorActual.esAnfitrion) {
-        const btnNuevaPartida = document.getElementById('btnNuevaPartidaJuego');
-        if (btnNuevaPartida) {
-            btnNuevaPartida.style.display = 'inline-block';
-        }
-    }
-}
-
-function manejarConfirmarNuevaPartida(data) {
-    console.log('❓ Confirmando nueva partida para invitado');
-    
-    // Solo mostrar modal si NO es anfitrión
-    if (jugadorActual && !jugadorActual.esAnfitrion) {
-        const modal = document.getElementById('modalConfirmarNuevaPartida');
-        modal.classList.remove('oculta');
-    } else {
-        console.log('🚫 Anfitrión no debe ver modal de confirmación');
-    }
-}
-
-function mostrarModalFinal(ganadores) {
-    const modal = document.getElementById('modalFinal');
-    const ganadoresFinales = document.getElementById('ganadoresFinales');
-    
-    // Mostrar notificación
-    mostrarNotificacion('¡Fin del juego! Revisa todos los ganadores', 'exito');
-    
-    // Agrupar ganadores por categoría
-    const ganadoresPorCategoria = {};
-    ganadores.forEach(ganador => {
-        if (!ganadoresPorCategoria[ganador.patron]) {
-            ganadoresPorCategoria[ganador.patron] = [];
-        }
-        ganadoresPorCategoria[ganador.patron].push(ganador);
-    });
-    
-    // Crear HTML para cada categoría
-    let html = '';
-    Object.entries(ganadoresPorCategoria).forEach(([patron, ganadoresCategoria]) => {
-        const primerGanador = ganadoresCategoria[0];
-        const icono = obtenerIconoPatron(patron);
-        const nombrePatron = obtenerNombrePatron(patron);
-        
-        html += `
-            <div class="ganador-categoria">
-                <div class="icono-categoria ${patron}">
-                    ${icono}
-                </div>
-                <div class="info-ganador">
-                    <div class="nombre-ganador">${primerGanador.jugador.nombre}</div>
-                    <div class="tipo-ganador">${nombrePatron}</div>
-                    <div class="fecha-ganador">Primer ganador de esta categoría</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    ganadoresFinales.innerHTML = html;
-    modal.classList.remove('oculta');
-}
-
-function obtenerIconoPatron(patron) {
-    const iconos = {
-        'linea': '<i class="fas fa-minus"></i>',
-        'loco': '<i class="fas fa-times"></i>',
-        'cuatroEsquinas': '<i class="fas fa-border-all"></i>',
-        'tablaLlena': '<i class="fas fa-square"></i>'
-    };
-    return iconos[patron] || '<i class="fas fa-trophy"></i>';
-}
-
-function obtenerNombrePatron(patron) {
-    const nombres = {
-        'linea': 'Línea',
-        'loco': 'LOCO (5 números)',
-        'cuatroEsquinas': 'Cuatro Esquinas',
-        'tablaLlena': 'Tabla Llena'
-    };
-    return nombres[patron] || patron;
-}
-
 // Funciones de UI
 function mostrarTablasDisponibles() {
     const gridTablas = document.getElementById('gridTablas');
+    if (!gridTablas || !salaActual) return;
     gridTablas.innerHTML = '';
     
     salaActual.tablas.forEach(tabla => {
@@ -632,35 +508,29 @@ function inicializarPantallaJuego() {
     console.log('🎮 Inicializando pantalla de juego');
     document.getElementById('codigoSalaJuego').textContent = salaActual.id;
     
-    console.log('📊 Estado de la sala:', {
-        id: salaActual.id,
-        ganadores: salaActual.ganadores,
-        jugadores: salaActual.jugadores.length
-    });
-    
     actualizarListaJugadores();
     actualizarNumerosCantados();
     actualizarNumerosMarcados();
     
-    // Actualizar la tabla de bingo si hay una tabla seleccionada
     if (tablaSeleccionada) {
         actualizarTablaBingo();
     }
     
-    // Actualizar lista de ganadores
     actualizarListaGanadores();
 }
 
 function actualizarNumeroJugadores() {
-    const numJugadoresElement = document.getElementById('numJugadores');
-    if (numJugadoresElement && salaActual) {
-        numJugadoresElement.textContent = salaActual.jugadores.length;
+    const seleccion = document.getElementById('numJugadoresSeleccion');
+    const config = document.getElementById('numJugadoresConfig');
+    if (salaActual) {
+        if (seleccion) seleccion.textContent = salaActual.jugadores.length;
+        if (config) config.textContent = salaActual.jugadores.length;
     }
 }
 
 function actualizarListaJugadores() {
     const listaJugadores = document.getElementById('listaJugadores');
-    if (!listaJugadores) return;
+    if (!listaJugadores || !salaActual) return;
     
     listaJugadores.innerHTML = '';
     
@@ -699,8 +569,6 @@ function actualizarNumerosCantados() {
 }
 
 function actualizarNumerosMarcados() {
-    // Los números marcados ahora se muestran directamente en la tabla de bingo
-    // Solo actualizar la información de depuración
     mostrarInfoDepuracion();
 }
 
@@ -740,12 +608,10 @@ function actualizarTablaBingo() {
             elemento.style.gridColumn = colIndex + 1;
             elemento.style.gridRow = filaIndex + 2; // +2 porque la fila 1 son los headers
             
-            // SOLO marcar si el usuario lo marcó manualmente
             if (numerosMarcados.includes(celda.numero)) {
                 elemento.classList.add('marcada');
             }
             
-            // Permitir marcar solo si está cantado y no marcado
             elemento.addEventListener('click', () => {
                 if (numerosCantados.includes(celda.numero) && !numerosMarcados.includes(celda.numero)) {
                     marcarNumero(celda.numero);
@@ -756,61 +622,46 @@ function actualizarTablaBingo() {
         });
     });
     
-    // Mostrar información de depuración
     mostrarInfoDepuracion();
 }
 
 function actualizarListaGanadores() {
-    console.log('🔄 Actualizando lista de ganadores');
+    const panel = document.getElementById('panelGanadores');
     const listaGanadores = document.getElementById('listaGanadores');
-    if (!listaGanadores) {
-        console.log('❌ Elemento listaGanadores no encontrado');
+    if (!listaGanadores || !panel) return;
+    
+    if (!salaActual || !salaActual.ganadores || salaActual.ganadores.length === 0) {
+        panel.style.display = 'none';
+        listaGanadores.innerHTML = '';
         return;
     }
     
-    if (!salaActual) {
-        console.log('❌ salaActual no está definida');
-        return;
-    }
-    
-    console.log('📊 Ganadores en sala:', salaActual.ganadores);
-    
+    panel.style.display = '';
     listaGanadores.innerHTML = '';
     
-    if (salaActual.ganadores && salaActual.ganadores.length > 0) {
-        console.log(`✅ Mostrando ${salaActual.ganadores.length} ganadores`);
-        salaActual.ganadores.forEach((ganador, index) => {
-            console.log(`🏆 Ganador ${index + 1}:`, ganador);
-            const div = document.createElement('div');
-            div.className = 'ganador-item';
-            
-            div.innerHTML = `
-                <div class="avatar">🏆</div>
-                <div>
-                    <div style="font-weight: 500;">${ganador.jugador.nombre}</div>
-                    <div style="font-size: 0.8rem; color: #718096;">
-                        ${ganador.resultado.tipo}
-                    </div>
+    salaActual.ganadores.forEach(ganador => {
+        const div = document.createElement('div');
+        div.className = 'ganador-item';
+        div.innerHTML = `
+            <div class="avatar">🏆</div>
+            <div>
+                <div style="font-weight: 500;">${ganador.jugador.nombre}</div>
+                <div style="font-size: 0.8rem; color: #718096;">
+                    ${ganador.resultado.tipo}
                 </div>
-            `;
-            
-            listaGanadores.appendChild(div);
-        });
-    } else {
-        console.log('📝 No hay ganadores, mostrando mensaje por defecto');
-        listaGanadores.innerHTML = '<div style="text-align: center; color: #718096; padding: 20px;">Aún no hay ganadores</div>';
-    }
+            </div>
+        `;
+        listaGanadores.appendChild(div);
+    });
 }
 
 function mostrarModalBingo(ganador) {
-    console.log('Mostrando modal de bingo:', ganador);
     const modal = document.getElementById('modalBingo');
     const mensaje = document.getElementById('mensajeBingo');
     const detalles = document.getElementById('detallesBingo');
     
     mensaje.textContent = `¡${ganador.jugador.nombre} ha ganado!`;
     
-    // Crear tabla del ganador para mostrar con resaltado del patrón ganado
     let tablaHTML = '';
     if (ganador.jugador.tablaSeleccionada) {
         tablaHTML = `
@@ -843,27 +694,19 @@ function esGanadorEnPatron(patron, resultado, filaIndex, colIndex, esMarcado) {
     
     switch (patron) {
         case 'linea':
-            // Resaltar la línea ganadora
             if (resultado.fila && resultado.fila === filaIndex + 1) return true;
             if (resultado.columna && resultado.columna === colIndex + 1) return true;
             if (resultado.diagonal === 'principal' && filaIndex === colIndex) return true;
             if (resultado.diagonal === 'secundaria' && filaIndex + colIndex === 4) return true;
             break;
-            
         case 'cuatroEsquinas':
-            // Resaltar las cuatro esquinas
             if ((filaIndex === 0 || filaIndex === 4) && (colIndex === 0 || colIndex === 4)) return true;
             break;
-            
         case 'loco':
-            // Para LOCO, no hay patrón específico, solo marcar los 5 números
             return true;
-            
         case 'tablaLlena':
-            // Para tabla llena, todos los marcados son ganadores
             return true;
     }
-    
     return false;
 }
 
@@ -871,42 +714,49 @@ function cerrarModal() {
     document.getElementById('modalBingo').classList.add('oculta');
 }
 
-function cerrarModalFinal() {
-    document.getElementById('modalFinal').classList.add('oculta');
+// Modal salir
+function abrirModalSalir() {
+    const modal = document.getElementById('modalSalir');
+    if (modal) modal.classList.remove('oculta');
+}
+function cerrarModalSalir() {
+    const modal = document.getElementById('modalSalir');
+    if (modal) modal.classList.add('oculta');
+}
+function confirmarSalir() {
+    try { socket.disconnect(); } catch (e) {}
+    window.location.reload();
 }
 
-function iniciarNuevaPartida() {
-    if (confirm('¿Estás seguro de que quieres iniciar una nueva partida?')) {
-        socket.emit('iniciarNuevaPartida', { salaId: salaActual.id });
-        mostrarNotificacion('Iniciando nueva partida...', 'info');
+function manejarTablaSeleccionada(data) {
+    tablaSeleccionada = data.tabla;
+    
+    // Actualizar estado local del jugador actual
+    if (jugadorActual) jugadorActual.tablaSeleccionada = data.tabla;
+    if (salaActual && salaActual.jugadores) {
+        const yo = salaActual.jugadores.find(j => j.id === jugadorActual.id);
+        if (yo) yo.tablaSeleccionada = data.tabla;
+    }
+    
+    // Marcar tabla como seleccionada en la UI
+    document.querySelectorAll('.tabla-mini').forEach(tabla => {
+        tabla.classList.remove('seleccionada');
+    });
+    
+    const tablaElement = document.querySelector(`[data-tabla-id="${data.tabla.id}"]`);
+    if (tablaElement) {
+        tablaElement.classList.add('seleccionada');
+    }
+    
+    mostrarNotificacion(`Seleccionaste la tabla ${data.tabla.id + 1}`, 'exito');
+    
+    if (salaActual.juegoActivo) {
+        mostrarPantalla('pantallaJuego');
+        inicializarPantallaJuego();
     }
 }
 
-function iniciarNuevaPartidaDesdeJuego() {
-    const modalConfirmacion = document.getElementById('modalConfirmarNuevaPartida');
-    modalConfirmacion.classList.remove('oculta');
-}
-
-function aceptarNuevaPartida() {
-    // Cerrar el modal
-    document.getElementById('modalConfirmarNuevaPartida').classList.add('oculta');
-    
-    // Notificar al servidor que acepta la nueva partida
-    socket.emit('aceptarNuevaPartida', { salaId: salaActual.id });
-    
-    mostrarNotificacion('¡Te has unido a la nueva partida!', 'exito');
-}
-
-function rechazarNuevaPartida() {
-    // Cerrar el modal
-    document.getElementById('modalConfirmarNuevaPartida').classList.add('oculta');
-    
-    // Notificar al servidor que rechaza la nueva partida
-    socket.emit('rechazarNuevaPartida', { salaId: salaActual.id });
-    
-    mostrarNotificacion('Has rechazado la nueva partida', 'info');
-}
-
+// Modal de nombre
 function mostrarModalNombre(mensaje) {
     const modal = document.getElementById('modalNombre');
     const input = document.getElementById('inputNombre');
@@ -928,9 +778,8 @@ function confirmarNombre() {
     document.getElementById('modalNombre').classList.add('oculta');
     
     if (accionPendiente === 'crearSala') {
-        const patrones = obtenerPatronesSeleccionados();
         const velocidad = parseInt(document.getElementById('velocidadCanto').value);
-        
+        const patrones = obtenerPatronesSeleccionados();
         socket.emit('crearSala', {
             patrones: patrones,
             velocidadCanto: velocidad,
@@ -960,7 +809,6 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     
     notificaciones.appendChild(notificacion);
     
-    // Reproducir sonido de notificación
     if (tipo === 'exito') {
         playSuccess();
     } else if (tipo === 'error') {
@@ -974,25 +822,13 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     }, 5000);
 }
 
-function mostrarModalFinal(mensaje, detalles) {
-    const modal = document.getElementById('modalFinal');
-    const mensajeModal = document.getElementById('mensajeFinal');
-    const detallesModal = document.getElementById('detallesFinal');
-
-    mensajeModal.textContent = mensaje;
-    detallesModal.innerHTML = detalles;
-    modal.classList.remove('oculta');
-}
-
 // Funciones auxiliares
 function obtenerPatronesSeleccionados() {
     const patrones = [];
-    
     if (document.getElementById('patronLinea').checked) patrones.push('linea');
     if (document.getElementById('patronTablaLlena').checked) patrones.push('tablaLlena');
     if (document.getElementById('patronCuatroEsquinas').checked) patrones.push('cuatroEsquinas');
     if (document.getElementById('patronLoco').checked) patrones.push('loco');
-    
     return patrones;
 }
 
@@ -1008,26 +844,12 @@ function actualizarVelocidadRapida() {
     velocidadTexto.textContent = `${Math.round(velocidad / 1000)}s`;
 }
 
-function obtenerPatronesRapidos() {
-    const patrones = [];
-    if (document.getElementById('patronLineaRapido').checked) patrones.push('linea');
-    if (document.getElementById('patronTablaLlenaRapido').checked) patrones.push('tablaLlena');
-    if (document.getElementById('patronCuatroEsquinasRapido').checked) patrones.push('cuatroEsquinas');
-    if (document.getElementById('patronLocoRapido').checked) patrones.push('loco');
-    return patrones;
-}
-
 function iniciarJuegoRapido() {
-    // Obtener patrones seleccionados
     const patronesSeleccionados = [];
     document.querySelectorAll('.patrones-rapidos input[type="checkbox"]:checked').forEach(checkbox => {
         patronesSeleccionados.push(checkbox.value);
     });
-    
-    // Obtener velocidad seleccionada
     const velocidad = document.getElementById('velocidadCantoRapido').value;
-    
-    // Configurar la sala
     socket.emit('configurarSala', {
         salaId: salaActual.id,
         configuracion: {
@@ -1035,12 +857,7 @@ function iniciarJuegoRapido() {
             velocidadCanto: parseInt(velocidad)
         }
     });
-    
-    // Iniciar el juego
-    socket.emit('iniciarJuego', {
-        salaId: salaActual.id
-    });
-    
+    socket.emit('iniciarJuego', { salaId: salaActual.id });
     mostrarNotificacion('Iniciando juego con configuración rápida...', 'info');
 }
 
@@ -1054,34 +871,5 @@ function volverInicio() {
 }
 
 function pausarJuego() {
-    // Implementar lógica de pausa
     mostrarNotificacion('Función de pausa en desarrollo', 'info');
-}
-
-function salirJuego() {
-    if (confirm('¿Estás seguro de que quieres salir del juego?')) {
-        volverInicio();
-    }
-}
-
-function manejarTablaSeleccionada(data) {
-    tablaSeleccionada = data.tabla;
-    
-    // Marcar tabla como seleccionada en la UI
-    document.querySelectorAll('.tabla-mini').forEach(tabla => {
-        tabla.classList.remove('seleccionada');
-    });
-    
-    const tablaElement = document.querySelector(`[data-tabla-id="${data.tabla.id}"]`);
-    if (tablaElement) {
-        tablaElement.classList.add('seleccionada');
-    }
-    
-    mostrarNotificacion(`Seleccionaste la tabla ${data.tabla.id + 1}`, 'exito');
-    
-    // Si el juego ya está activo, ir directamente a la pantalla de juego
-    if (salaActual.juegoActivo) {
-        mostrarPantalla('pantallaJuego');
-        inicializarPantallaJuego();
-    }
 }
