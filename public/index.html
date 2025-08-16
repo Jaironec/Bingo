@@ -88,7 +88,7 @@
                         <h3>Información de la Sala</h3>
                         <div class="info-sala">
                             <p><strong>Código de la sala:</strong> <span id="codigoSalaMostrar"></span></p>
-                            <p><strong>Jugadores:</strong> <span id="numJugadores">1</span>/20</p>
+                            <p><strong>Jugadores:</strong> <span id="numJugadoresConfig">1</span>/20</p>
                         </div>
                     </div>
                 </div>
@@ -120,7 +120,7 @@
                         <strong>Jugador:</strong> <span id="nombreJugador">-</span>
                     </div>
                     <div class="num-jugadores">
-                        <strong>Jugadores en Sala:</strong> <span id="numJugadores">-</span>
+                        <strong>Jugadores en Sala:</strong> <span id="numJugadoresSeleccion">-</span>
                     </div>
                 </div>
                 
@@ -174,9 +174,6 @@
                         <p>Sala: <strong id="codigoSalaJuego"></strong></p>
                     </div>
                     <div class="controles-juego">
-                        <button id="btnNuevaPartidaJuego" class="btn btn-success anfitrion-only">
-                            <i class="fas fa-redo"></i> Nueva Partida
-                        </button>
                         <button id="btnPausar" class="btn btn-warning">
                             <i class="fas fa-pause"></i> Pausar
                         </button>
@@ -234,7 +231,7 @@
                             <div id="listaJugadores" class="lista-jugadores"></div>
                         </div>
                         
-                        <div class="ganadores">
+                        <div id="panelGanadores" class="ganadores">
                             <h3>Ganadores</h3>
                             <div id="listaGanadores" class="lista-ganadores"></div>
                         </div>
@@ -259,38 +256,18 @@
             </div>
         </div>
 
-        <!-- Modal final del juego -->
-        <div id="modalFinal" class="modal oculta">
-            <div class="modal-content modal-final">
-                <div class="modal-header">
-                    <h3><i class="fas fa-flag-checkered"></i> ¡Fin del Juego!</h3>
-                </div>
-                <div class="modal-body">
-                    <h4>Ganadores por Categoría:</h4>
-                    <div id="ganadoresFinales"></div>
-                </div>
-                <div class="modal-footer">
-                    <button id="btnNuevaPartida" class="btn btn-success">
-                        <i class="fas fa-redo"></i> Nueva Partida
-                    </button>
-                    <button id="btnCerrarModalFinal" class="btn btn-primary">Cerrar</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal de confirmación para nueva partida -->
-        <div id="modalConfirmarNuevaPartida" class="modal oculta">
+        <!-- Modal de confirmación de salida -->
+        <div id="modalSalir" class="modal oculta">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-question-circle"></i> Nueva Partida</h3>
+                    <h3><i class="fas fa-door-open"></i> ¿Salir de la sala?</h3>
                 </div>
                 <div class="modal-body">
-                    <p>¿Te gustaría unirte a la nueva partida?</p>
-                    <p><small>El anfitrión ha iniciado una nueva partida. Si aceptas, tendrás que elegir una nueva tabla.</small></p>
+                    <p>Perderás tu progreso en esta partida y volverás al menú principal.</p>
                 </div>
                 <div class="modal-footer">
-                    <button id="btnRechazarNuevaPartida" class="btn btn-secondary">No, salir</button>
-                    <button id="btnAceptarNuevaPartida" class="btn btn-success">Sí, unirme</button>
+                    <button id="btnCancelarSalir" class="btn btn-secondary">Cancelar</button>
+                    <button id="btnConfirmarSalir" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Salir</button>
                 </div>
             </div>
         </div>
