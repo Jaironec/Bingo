@@ -10,6 +10,10 @@ let accionPendiente = null; // 'crearSala' o 'unirseSala'
 let ultimaNotificacion = { texto: '', tiempo: 0 };
 let ultimoEventoHist = { texto: '', tiempo: 0 };
 
+// Cooldown para declarar bingo
+let ultimoBingoClickMs = 0;
+const BINGO_COOLDOWN_MS = 1500;
+
 // Función para obtener letra B-I-N-G-O según el número
 function obtenerLetraBingo(numero) {
     if (numero >= 1 && numero <= 15) return 'B';
@@ -230,6 +234,12 @@ function marcarNumero(numero) {
 }
 
 function declararBingo(e) {
+    const ahora = Date.now();
+    if (ahora - ultimoBingoClickMs < BINGO_COOLDOWN_MS) {
+        mostrarNotificacion('Espera un momento antes de declarar de nuevo', 'info');
+        return;
+    }
+    ultimoBingoClickMs = ahora;
     const patron = e.target.closest('.btn-bingo').dataset.patron;
     const numeroActual = document.getElementById('numeroActual').textContent;
     
@@ -861,7 +871,14 @@ function cerrarModal() {
 // Modal salir
 function abrirModalSalir() {
     const modal = document.getElementById('modalSalir');
-    if (modal) modal.classList.remove('oculta');
+    const msg = document.getElementById('mensajeSalir');
+    const tieneTabla = !!(jugadorActual && jugadorActual.tablaSeleccionada);
+    const esHost = !!(jugadorActual && jugadorActual.esAnfitrion);
+    let texto = 'Perderás tu progreso en esta partida y volverás al menú principal.';
+    if (tieneTabla) texto += ' Has seleccionado una tabla y podrías perder tu lugar.';
+    if (esHost) texto += ' Eres el anfitrión; los jugadores podrían quedar sin partida.';
+    msg.textContent = texto;
+    modal.classList.remove('oculta');
 }
 function cerrarModalSalir() {
     const modal = document.getElementById('modalSalir');
