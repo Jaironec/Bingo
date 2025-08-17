@@ -1131,3 +1131,196 @@ async function intentarRehidratarEstado() {
         }
     } catch (e) { console.warn('No se pudo rehidratar estado', e); }
 }
+
+// ===== Modo Presencial (offline) =====
+let offline = {
+    activos: false,
+    codigosFijos: [], // códigos habilitados
+    patrones: ['linea','tablaLlena','cuatroEsquinas','machetaso'],
+    velocidad: 3000,
+    numerosCantados: [],
+    intervalo: null,
+    enPausa: false
+};
+
+function configurarOfflineListeners() {
+    const go = (id) => { document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculta')); document.getElementById(id).classList.remove('oculta'); };
+    const btnPresencial = document.getElementById('btnModoPresencial');
+    if (btnPresencial) btnPresencial.addEventListener('click', () => go('pantallaOfflineSetup'));
+    const btnVolverInicioOffline = document.getElementById('btnVolverInicioOffline');
+    if (btnVolverInicioOffline) btnVolverInicioOffline.addEventListener('click', () => go('pantallaInicio'));
+
+    const vel = document.getElementById('velocidadOffline');
+    if (vel) vel.addEventListener('input', () => { offline.velocidad = parseInt(vel.value); document.getElementById('velocidadOfflineTexto').textContent = `${(offline.velocidad/1000).toFixed(1)} segundos`; });
+
+    const btnImprimir = document.getElementById('btnImprimirTablas');
+    if (btnImprimir) btnImprimir.addEventListener('click', imprimirTablasOffline);
+
+    const btnIniciar = document.getElementById('btnIniciarOffline');
+    if (btnIniciar) btnIniciar.addEventListener('click', iniciarOffline);
+
+    const btnPausarOffline = document.getElementById('btnPausarOffline');
+    if (btnPausarOffline) btnPausarOffline.addEventListener('click', togglePausaOffline);
+
+    const btnSalirOffline = document.getElementById('btnSalirOffline');
+    if (btnSalirOffline) btnSalirOffline.addEventListener('click', () => { pararOffline(); document.getElementById('pantallaOfflineSetup').classList.remove('oculta'); document.getElementById('pantallaOfflineJuego').classList.add('oculta'); });
+
+    const btnBingoOffline = document.getElementById('btnBingoOffline');
+    if (btnBingoOffline) btnBingoOffline.addEventListener('click', abrirModalOfflineBingo);
+
+    const btnCancelarOfflineBingo = document.getElementById('btnCancelarOfflineBingo');
+    if (btnCancelarOfflineBingo) btnCancelarOfflineBingo.addEventListener('click', () => document.getElementById('modalOfflineBingo').classList.add('oculta'));
+
+    const btnConfirmarOfflineBingo = document.getElementById('btnConfirmarOfflineBingo');
+    if (btnConfirmarOfflineBingo) btnConfirmarOfflineBingo.addEventListener('click', verificarOfflineBingo);
+}
+
+function imprimirTablasOffline() {
+    // Generar 21 tablas fijas reproducibles a partir de una semilla constante
+    const pdfWindow = window.open('', '_blank');
+    const seed = 12345; // semilla fija
+    const tablas = generarTablasFijas(seed, 21);
+    const estilos = `<style>body{font-family:Arial;padding:20px} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} .card{border:1px solid #ccc;border-radius:8px;padding:8px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;text-align:center;padding:6px} .cod{font-weight:700;margin:6px 0} .free{background:#faf089}</style>`;
+    let html = `<html><head><title>Tablas Presenciales</title>${estilos}</head><body><h2>Tablas Presenciales</h2><div class='grid'>`;
+    tablas.forEach((t,i) => {
+        html += `<div class='card'><div class='cod'>OFF-${String(i+1).padStart(3,'0')}</div><table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
+        t.numeros.forEach((fila,fIdx)=>{
+            html += '<tr>' + fila.map((c, cIdx)=> (fIdx===2 && cIdx===2)? `<td class='free'>FREE</td>` : `<td>${c.numero}</td>`).join('') + '</tr>';
+        });
+        html += `</tbody></table></div>`;
+    });
+    html += `</div></body></html>`;
+    pdfWindow.document.write(html);
+    pdfWindow.document.close();
+    pdfWindow.focus();
+    try { pdfWindow.print(); } catch(_) {}
+}
+
+function generarTablasFijas(seed, cantidad) {
+    function rng() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+    function genTabla() {
+        const cols = [];
+        for (let col=0; col<5; col++) {
+            const min = col*15+1, max=(col+1)*15; const set = new Set(); const arr=[];
+            while(arr.length<5){ const n = Math.floor(rng()*(max-min+1))+min; if(!set.has(n)){set.add(n); arr.push(n);} }
+            cols.push(arr);
+        }
+        const filas=[]; const letras=['B','I','N','G','O'];
+        for (let i=0;i<5;i++){ const fila=[]; for(let j=0;j<5;j++){ fila.push({numero: cols[j][i], letra: letras[j]}); } filas.push(fila); }
+        filas[2][2] = { numero:0, letra:'FREE', esLibre:true };
+        return { numeros: filas };
+    }
+    const tablas=[]; const used=new Set();
+    while(tablas.length<cantidad){ const t = genTabla(); const key=JSON.stringify(t.numeros); if(!used.has(key)){ used.add(key); tablas.push(t); } }
+    return tablas;
+}
+
+function iniciarOffline() {
+    const codigos = document.getElementById('codigosOffline').value.split(',').map(s=>s.trim()).filter(Boolean);
+    offline.codigosFijos = codigos;
+    const patrones = [];
+    if (document.getElementById('offlinePatronLinea').checked) patrones.push('linea');
+    if (document.getElementById('offlinePatronTablaLlena').checked) patrones.push('tablaLlena');
+    if (document.getElementById('offlinePatronCuatroEsquinas').checked) patrones.push('cuatroEsquinas');
+    if (document.getElementById('offlinePatronLoco').checked) patrones.push('loco');
+    if (document.getElementById('offlinePatronMachetaso').checked) patrones.push('machetaso');
+    offline.patrones = patrones;
+    offline.numerosCantados = [];
+    document.getElementById('historialEventosOffline').innerHTML = '';
+    document.querySelectorAll('#offlineNumerosGrid .numero-item').forEach(el=>el.remove());
+    document.getElementById('offlineNumeroActual').textContent = '-';
+    document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculta'));
+    document.getElementById('pantallaOfflineJuego').classList.remove('oculta');
+    agregarEventoHistorialOffline('▶️ Empezó el juego presencial');
+    iniciarCantoOffline();
+}
+
+function iniciarCantoOffline() {
+    if (offline.intervalo) clearInterval(offline.intervalo);
+    const todos = Array.from({length:75}, (_,i)=>i+1);
+    let disponibles = [...todos];
+    function pick(){ return disponibles.splice(Math.floor(Math.random()*disponibles.length),1)[0]; }
+    offline.enPausa = false;
+    offline.intervalo = setInterval(()=>{
+        if (offline.enPausa) return;
+        if (disponibles.length===0) { pararOffline(); agregarEventoHistorialOffline('⏹️ Fin: se cantaron todos los números'); return; }
+        const num = pick(); offline.numerosCantados.push(num);
+        document.getElementById('offlineNumeroActual').textContent = num;
+        renderOfflineNumero(num);
+    }, offline.velocidad);
+}
+
+function togglePausaOffline() {
+    offline.enPausa = !offline.enPausa;
+    const btn = document.getElementById('btnPausarOffline');
+    btn.innerHTML = offline.enPausa ? '<i class="fas fa-play"></i> Reanudar' : '<i class="fas fa-pause"></i> Pausar';
+    agregarEventoHistorialOffline(offline.enPausa? '⏸️ Pausa': '⏯️ Reanudado');
+}
+
+function pararOffline() { if (offline.intervalo) clearInterval(offline.intervalo); offline.intervalo = null; }
+
+function renderOfflineNumero(num) {
+    const grid = document.getElementById('offlineNumerosGrid');
+    const div = document.createElement('div');
+    div.className = 'numero-item cantado';
+    div.textContent = num; grid.appendChild(div);
+}
+
+function abrirModalOfflineBingo() { offline.enPausa = true; document.getElementById('modalOfflineBingo').classList.remove('oculta'); }
+
+function verificarOfflineBingo() {
+    const input = document.getElementById('inputCodigoOfflineBingo');
+    const codigo = input.value.trim();
+    if (!codigo) { mostrarNotificacion('Ingresa un código', 'error'); return; }
+    if (offline.codigosFijos.length && !offline.codigosFijos.includes(codigo)) {
+        mostrarNotificacion('Código no ingresado en esta partida', 'error'); return;
+    }
+    // Reconstruir tabla fija por código (OFF-XXX) usando la misma semilla y el índice
+    const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) { mostrarNotificacion('Código inválido', 'error'); return; }
+    const tabla = generarTablasFijas(12345, idx+1)[idx];
+    // Evaluar patrones con los números cantados
+    const resultado = evaluarPatronesOffline(tabla.numeros, offline.numerosCantados, offline.patrones);
+    const resDiv = document.getElementById('resultadoOfflineBingo');
+    if (resultado.ganado) {
+        resDiv.innerHTML = `<span style='color:#2f855a;'>✅ ${codigo} ganó: ${resultado.detalle}</span>`;
+        agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resultado.detalle}`);
+    } else {
+        resDiv.innerHTML = `<span style='color:#c53030;'>❌ ${codigo} no tiene bingo válido</span>`;
+    }
+}
+
+function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
+    // Centro FREE
+    const isMarked = (celda) => !!(celda && (cantados.includes(celda.numero) || celda.esLibre===true));
+    const ultimo = cantados[cantados.length-1];
+    const incluyeUltimo = (fila,col)=>{ try { const c = tabla[fila][col]; return c.esLibre===true || c.numero===ultimo; } catch{return false;}}
+    if (patronesHabilitados.includes('linea')) {
+        for (let col=0; col<5; col++) {
+            const completa = [0,1,2,3,4].every(f=>isMarked(tabla[f][col]));
+            if (completa && [0,1,2,3,4].some(f=>incluyeUltimo(f,col))) return {ganado:true, detalle:'Línea (vertical)'}
+        }
+        for (let fila=0; fila<5; fila++) {
+            const completa = tabla[fila].every(c=>isMarked(c));
+            if (completa && tabla[fila].some(c=>c.esLibre===true || c.numero===ultimo)) return {ganado:true, detalle:'Línea (horizontal)'}
+        }
+    }
+    if (patronesHabilitados.includes('cuatroEsquinas')) {
+        const corners = [tabla[0][0],tabla[0][4],tabla[4][0],tabla[4][4]];
+        if (corners.every(isMarked) && corners.some(c=>c.numero===ultimo)) return {ganado:true, detalle:'Cuatro Esquinas'}
+    }
+    if (patronesHabilitados.includes('loco')) {
+        const marcados = new Set(cantados);
+        if (marcados.size>=5 && marcados.has(ultimo)) return {ganado:true, detalle:'LOCO (5 números)'}
+    }
+    if (patronesHabilitados.includes('machetaso')) {
+        const dP = [0,1,2,3,4].every(i=>isMarked(tabla[i][i])) && [0,1,2,3,4].some(i=>incluyeUltimo(i,i));
+        const dS = [0,1,2,3,4].every(i=>isMarked(tabla[i][4-i])) && [0,1,2,3,4].some(i=>incluyeUltimo(i,4-i));
+        if (dP) return {ganado:true, detalle:'Machetaso (diagonal principal)'};
+        if (dS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)'};
+    }
+    if (patronesHabilitados.includes('tablaLlena')) {
+        const completa = tabla.every(fila=>fila.every(isMarked));
+        if (completa && tabla.some(f=>f.some(c=>c.esLibre===true||c.numero===ultimo))) return {ganado:true, detalle:'Tabla Llena'}
+    }
+    return {ganado:false}
+}
