@@ -1231,15 +1231,12 @@ function iniciarOffline() {
     if (document.getElementById('offlinePatronLoco').checked) patrones.push('loco');
     if (document.getElementById('offlinePatronMachetaso').checked) patrones.push('machetaso');
     offline.patrones = patrones;
+    offline.velocidad = parseInt(document.getElementById('velocidadOffline').value || '3000');
     offline.numerosCantados = [];
     document.getElementById('historialEventosOffline').innerHTML = '';
     const board = document.getElementById('offlineBingoBoard');
     board.innerHTML = '';
-    // Render BINGO headers
-    'BINGO'.split('').forEach(ch => {
-        const h = document.createElement('div'); h.className = 'cell header'; h.textContent = ch; board.appendChild(h);
-    });
-    // Render 1..75 grid by columns (5x15)
+    'BINGO'.split('').forEach(ch => { const h = document.createElement('div'); h.className = 'cell header'; h.textContent = ch; board.appendChild(h); });
     for (let row=0; row<15; row++) {
         for (let col=0; col<5; col++) {
             const base = col*15+1; const num = base+row; const c = document.createElement('div'); c.className = 'cell'; c.dataset.num = String(num); c.textContent = num; board.appendChild(c);
@@ -1257,18 +1254,20 @@ function iniciarCantoOffline() {
     const todos = Array.from({length:75}, (_,i)=>i+1);
     let disponibles = [...todos];
     function pick(){ return disponibles.splice(Math.floor(Math.random()*disponibles.length),1)[0]; }
-    offline.enPausa = false;
-    offline.intervalo = setInterval(()=>{
+    function tick(){
         if (offline.enPausa) return;
         if (disponibles.length===0) { pararOffline(); agregarEventoHistorialOffline('⏹️ Fin: se cantaron todos los números'); return; }
         const num = pick(); offline.numerosCantados.push(num);
         const letra = obtenerLetraBingo(num);
         document.getElementById('offlineNumeroActual').textContent = `${letra}${num}`;
         renderOfflineNumero(num);
-        // Sonido/voz similar a online
-        playNumberCalled?.();
+        if (typeof playNumberCalled === 'function') playNumberCalled();
         reproducirVozNumero(num, letra);
-    }, offline.velocidad);
+    }
+    offline.enPausa = false;
+    // Ejecutar primer número inmediatamente como online
+    tick();
+    offline.intervalo = setInterval(tick, offline.velocidad);
 }
 
 function togglePausaOffline() {
