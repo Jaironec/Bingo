@@ -1624,3 +1624,15 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .codes-list { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
 .code-chip { padding:6px 10px; border:1px solid #cbd5e0; border-radius:999px; cursor:pointer; user-select:none; font-weight:600; color:#2d3748; background:#edf2f7; }
 .code-chip.selected { background:#c6f6d5; border-color:#68d391; color:#22543d; }
+
+/* Resultados de verificación (offline) */
+.verification-results { display:grid; grid-template-columns: 1fr; gap:12px; margin-top:8px; }
+.result-card { border:1px solid #e2e8f0; border-radius:12px; padding:10px; background:#ffffff; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
+.result-card.winner { border-color:#68d391; background:#f0fff4; }
+.result-card.loser { border-color:#feb2b2; background:#fff5f5; }
+.result-card .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.result-card .code { font-weight:800; color:#2d3748; }
+.result-card .status { font-size:0.85rem; font-weight:700; padding:4px 8px; border-radius:999px; }
+.result-card.winner .status { background:#c6f6d5; color:#22543d; }
+.result-card.loser .status { background:#fed7d7; color:#742a2a; }
+.result-card .detail { color:#2d3748; font-size:0.9rem; margin-bottom:6px; }
