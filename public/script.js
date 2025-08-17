@@ -1294,18 +1294,48 @@ function verificarOfflineBingo() {
     if (offline.codigosFijos.length && !offline.codigosFijos.includes(codigo)) {
         mostrarNotificacion('Código no ingresado en esta partida', 'error'); return;
     }
-    // Reconstruir tabla fija por código (OFF-XXX) usando la misma semilla y el índice
     const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) { mostrarNotificacion('Código inválido', 'error'); return; }
-    const tabla = generarTablasFijas(12345, idx+1)[idx];
-    // Evaluar patrones con los números cantados
-    const resultado = evaluarPatronesOffline(tabla.numeros, offline.numerosCantados, offline.patrones);
+    const tablaObj = generarTablasFijas(12345, idx+1)[idx];
+    const resultado = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
     const resDiv = document.getElementById('resultadoOfflineBingo');
+    const preview = document.getElementById('offlineTablaPreview');
     if (resultado.ganado) {
         resDiv.innerHTML = `<span style='color:#2f855a;'>✅ ${codigo} ganó: ${resultado.detalle}</span>`;
         agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resultado.detalle}`);
     } else {
         resDiv.innerHTML = `<span style='color:#c53030;'>❌ ${codigo} no tiene bingo válido</span>`;
     }
+    // Render preview con resaltado similar al online
+    preview.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
+        fila.map((celda, colIndex) => {
+            const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
+            const patron = mapDetalleAPatron(resultado.detalle);
+            const esGanador = esGanadorEnPatron(patron, mapDetalleAResultado(resultado), filaIndex, colIndex, esMarcado);
+            const contenido = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
+            return `${contenido}</span>`;
+        }).join('')
+    ).join('');
+}
+
+function mapDetalleAPatron(detalle) {
+    if (!detalle) return '';
+    if (detalle.startsWith('Línea')) return 'linea';
+    if (detalle.startsWith('Machetaso')) return 'machetaso';
+    if (detalle.startsWith('Cuatro')) return 'cuatroEsquinas';
+    if (detalle.startsWith('LOCO')) return 'loco';
+    if (detalle.startsWith('Tabla')) return 'tablaLlena';
+    return '';
+}
+function mapDetalleAResultado(resultado) {
+    // resultado.detalle puede ser 'Línea (vertical)' etc
+    const r = {};
+    if (!resultado || !resultado.ganado) return r;
+    if (resultado.detalle.includes('vertical')) r.columna = 1; // solo para activar la rama; no se usa índice exacto aquí
+    if (resultado.detalle.includes('horizontal')) r.fila = 1;
+    if (resultado.detalle.includes('principal')) r.diagonal = 'principal';
+    if (resultado.detalle.includes('secundaria')) r.diagonal = 'secundaria';
+    if (resultado.detalle.includes('Tabla Llena')) { /* nada especial */ }
+    return r;
 }
 
 function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
