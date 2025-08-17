@@ -1343,3 +1343,11 @@ function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
     }
     return {ganado:false}
 }
+
+function agregarEventoHistorialOffline(texto) {
+    const lista = document.getElementById('historialEventosOffline');
+    if (!lista) return;
+    const hora = new Date(); const hh = String(hora.getHours()).padStart(2,'0'); const mm = String(hora.getMinutes()).padStart(2,'0');
+    const div = document.createElement('div'); div.className = 'hist-item'; div.innerHTML = `<span class='hist-time'>[${hh}:${mm}]</span> ${texto}`; lista.prepend(div);
+    while (lista.childElementCount>20) lista.lastElementChild.remove();
+}
