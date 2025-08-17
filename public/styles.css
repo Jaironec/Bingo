@@ -1580,3 +1580,6 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .hist-time { color: #718096; font-size: 0.8rem; }
 
 /* El estilo de tag de ganador se eliminó */
+
+/* Números grid reutilizado para offline */
+#offlineNumerosGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 6px; }
