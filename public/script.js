@@ -1358,52 +1358,63 @@ function verificarOfflineBingo() {
     const codes = [...new Set([ ...selected, ...(manual ? [manual] : []) ])];
     if (codes.length === 0) { mostrarNotificacion('Selecciona o ingresa al menos un código', 'error'); return false; }
     let huboGanadores = false;
+    const patronesGanadoresEstaVerificacion = new Set();
+    const allowedPatterns = offline.patrones.filter(p => !offline.patronesGanados.has(p));
+    const cards = [];
     codes.forEach(codigo => {
         const card = document.createElement('div');
         card.className = 'result-card';
-        // validaciones
+        let patronCard = '';
         if (offline.codigosFijos.length && !offline.codigosFijos.includes(codigo)) {
             card.classList.add('loser');
             card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>No en partida</span></div>`;
-            resDiv.appendChild(card);
+            cards.push(card);
             return;
         }
         const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) {
             card.classList.add('loser');
             card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Código inválido</span></div>`;
-            resDiv.appendChild(card);
+            cards.push(card);
             return;
         }
         const tablaObj = generarTablasFijas(12345, idx+1)[idx];
-        const resultado = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
-        const patron = mapDetalleAPatron(resultado.detalle);
-        if (resultado.ganado && patron && !offline.patronesGanados.has(patron)) {
-            offline.patronesGanados.add(patron);
+        const resAllowed = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, allowedPatterns);
+        const resFull = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
+        let statusHtml = '';
+        if (resAllowed.ganado) {
             card.classList.add('winner');
-            card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${resultado.detalle}</div>`;
-            agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resultado.detalle}`);
+            patronCard = resAllowed.patron;
+            statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${resAllowed.detalle}</div>`;
+            patronesGanadoresEstaVerificacion.add(resAllowed.patron);
             huboGanadores = true;
-        } else if (resultado.ganado && offline.patronesGanados.has(patron)) {
+        } else if (resFull.ganado && offline.patronesGanados.has(resFull.patron)) {
             card.classList.add('loser');
-            card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Patrón ya ganado</span></div>`;
+            patronCard = resFull.patron;
+            statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Patrón ya ganado</span></div>`;
         } else {
             card.classList.add('loser');
-            card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Sin bingo</span></div>`;
+            statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Sin bingo</span></div>`;
         }
+        card.innerHTML = statusHtml;
+        // tabla preview
         const mini = document.createElement('div');
         mini.className = 'tabla-bingo-mini';
         mini.style.marginTop = '8px';
+        const resForPreview = resAllowed.ganado ? resAllowed : resFull;
         mini.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
             fila.map((celda, colIndex) => {
                 const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
-                const esGanador = esGanadorEnPatron(patron, mapDetalleAResultado(resultado), filaIndex, colIndex, esMarcado);
+                const esGanador = esGanadorEnPatron(resForPreview.patron, mapDetalleAResultado(resForPreview), filaIndex, colIndex, esMarcado);
                 const contenido = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
                 return `${contenido}</span>`;
             }).join('')
         ).join('');
         card.appendChild(mini);
-        resDiv.appendChild(card);
+        cards.push(card);
     });
+    // Pintar todas las tarjetas y después fijar patrones ganados
+    cards.forEach(c => resDiv.appendChild(c));
+    patronesGanadoresEstaVerificacion.forEach(p => offline.patronesGanados.add(p));
     return huboGanadores;
 }
 
@@ -1431,45 +1442,44 @@ function mapDetalleAResultado(resultado) {
     return r;
 }
 
-function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
+function evaluarPatronesOffline(tabla, cantados, patronesPermitidos) {
     const isMarked = (celda) => !!(celda && (cantados.includes(celda.numero) || celda.esLibre===true));
     const ultimo = cantados[cantados.length-1];
-    if (patronesHabilitados.includes('linea')) {
+    if (patronesPermitidos.includes('linea')) {
         for (let col=0; col<5; col++) {
             const completa = [0,1,2,3,4].every(f=>isMarked(tabla[f][col]));
             const contieneUlt = [0,1,2,3,4].some(f=>tabla[f][col].numero===ultimo);
-            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (vertical)', columna: col+1}
+            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (vertical)', patron:'linea', columna: col+1}
         }
         for (let fila=0; fila<5; fila++) {
             const completa = tabla[fila].every(c=>isMarked(c));
             const contieneUlt = tabla[fila].some(c=>c.numero===ultimo);
-            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (horizontal)', fila: fila+1}
+            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (horizontal)', patron:'linea', fila: fila+1}
         }
     }
-    if (patronesHabilitados.includes('cuatroEsquinas')) {
+    if (patronesPermitidos.includes('cuatroEsquinas')) {
         const corners = [tabla[0][0],tabla[0][4],tabla[4][0],tabla[4][4]];
         const completas = corners.every(isMarked);
         const ultimoEnCorners = corners.some(c=>c.numero===ultimo);
-        if (completas && ultimoEnCorners) return {ganado:true, detalle:'Cuatro Esquinas'}
+        if (completas && ultimoEnCorners) return {ganado:true, detalle:'Cuatro Esquinas', patron:'cuatroEsquinas'}
     }
-    if (patronesHabilitados.includes('loco')) {
-        // EXACTAMENTE 5 números cantados en esta tabla y que uno de ellos sea el último (FREE no cuenta)
+    if (patronesPermitidos.includes('loco')) {
         const setCantados = new Set(cantados);
         const cantCantadosEnTabla = tabla.flat().filter(c=>!c.esLibre && setCantados.has(c.numero)).length;
-        if (cantCantadosEnTabla === 5 && setCantados.has(ultimo)) return {ganado:true, detalle:'LOCO (5 números)'}
+        if (cantCantadosEnTabla === 5 && setCantados.has(ultimo)) return {ganado:true, detalle:'LOCO (5 números)', patron:'loco'}
     }
-    if (patronesHabilitados.includes('machetaso')) {
+    if (patronesPermitidos.includes('machetaso')) {
         const dPCompleta = [0,1,2,3,4].every(i=>isMarked(tabla[i][i]));
         const dSCompleta = [0,1,2,3,4].every(i=>isMarked(tabla[i][4-i]));
         const ultimoEnP = [0,1,2,3,4].some(i=>tabla[i][i].numero===ultimo);
         const ultimoEnS = [0,1,2,3,4].some(i=>tabla[i][4-i].numero===ultimo);
-        if (dPCompleta && ultimoEnP) return {ganado:true, detalle:'Machetaso (diagonal principal)', diagonal: 'principal'};
-        if (dSCompleta && ultimoEnS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)', diagonal: 'secundaria'};
+        if (dPCompleta && ultimoEnP) return {ganado:true, detalle:'Machetaso (diagonal principal)', patron:'machetaso', diagonal: 'principal'};
+        if (dSCompleta && ultimoEnS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)', patron:'machetaso', diagonal: 'secundaria'};
     }
-    if (patronesHabilitados.includes('tablaLlena')) {
+    if (patronesPermitidos.includes('tablaLlena')) {
         const completa = tabla.every(fila=>fila.every(isMarked));
         const contieneUlt = tabla.some(f=>f.some(c=>c.numero===ultimo));
-        if (completa && contieneUlt) return {ganado:true, detalle:'Tabla Llena'}
+        if (completa && contieneUlt) return {ganado:true, detalle:'Tabla Llena', patron:'tablaLlena'}
     }
     return {ganado:false}
 }
