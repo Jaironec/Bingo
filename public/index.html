@@ -291,6 +291,96 @@
             </div>
         </div>
 
+        <!-- Pantalla de configuración modo presencial (offline) -->
+        <div id="pantallaOfflineSetup" class="pantalla oculta">
+            <div class="container">
+                <div class="header">
+                    <h2><i class="fas fa-users"></i> Modo Presencial</h2>
+                    <p>Imprime tablas fijas e ingresa los códigos que se van a usar</p>
+                </div>
+                <div class="configuracion">
+                    <div class="config-seccion">
+                        <h3>Tablas Fijas</h3>
+                        <div>
+                            <button id="btnImprimirTablas" class="btn btn-secondary">
+                                <i class="fas fa-file-pdf"></i> Imprimir / Descargar PDF
+                            </button>
+                        </div>
+                    </div>
+                    <div class="config-seccion">
+                        <h3>Códigos de Tablas para esta partida</h3>
+                        <textarea id="codigosOffline" rows="4" placeholder="Ej: OFF-001, OFF-002, OFF-015" style="width:100%;"></textarea>
+                        <small>Ingresa uno o varios códigos separados por coma</small>
+                    </div>
+                    <div class="config-seccion">
+                        <h3>Configuración Rápida</h3>
+                        <div class="patrones">
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronLinea" checked><span class="checkmark"></span> Línea</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronTablaLlena" checked><span class="checkmark"></span> Tabla Llena</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronCuatroEsquinas" checked><span class="checkmark"></span> Cuatro Esquinas</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronLoco"><span class="checkmark"></span> LOCO (5 números)</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronMachetaso" checked><span class="checkmark"></span> Machetaso</label>
+                        </div>
+                        <div class="velocidad">
+                            <input type="range" id="velocidadOffline" class="range" min="1000" max="10000" value="3000" step="100">
+                            <span id="velocidadOfflineTexto">3.0 segundos</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="acciones">
+                    <button id="btnIniciarOffline" class="btn btn-success"><i class="fas fa-play"></i> Iniciar</button>
+                    <button id="btnVolverInicioOffline" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla del juego modo presencial (offline) -->
+        <div id="pantallaOfflineJuego" class="pantalla oculta">
+            <div class="container-juego">
+                <div class="header-juego">
+                    <div class="info-juego">
+                        <h2><i class="fas fa-gamepad"></i> Modo Presencial</h2>
+                        <p>Número actual: <strong id="offlineNumeroActual">-</strong></p>
+                    </div>
+                    <div class="controles-juego">
+                        <button id="btnPausarOffline" class="btn btn-warning"><i class="fas fa-pause"></i> Pausar</button>
+                        <button id="btnBingoOffline" class="btn btn-success"><i class="fas fa-trophy"></i> Bingo</button>
+                        <button id="btnSalirOffline" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                    </div>
+                </div>
+                <div class="juego-content">
+                    <div class="panel-central" style="grid-column: span 2;">
+                        <div class="numeros-cantados">
+                            <h3>Tablero</h3>
+                            <div id="offlineNumerosGrid" class="numeros-grid"></div>
+                        </div>
+                    </div>
+                    <div class="panel-derecho">
+                        <div class="historial">
+                            <h3>Historial</h3>
+                            <div id="historialEventosOffline" class="lista-historial"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de verificación de bingo (offline) -->
+        <div id="modalOfflineBingo" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header"><h3><i class="fas fa-trophy"></i> Verificar Bingo</h3></div>
+                <div class="modal-body">
+                    <p>Ingresa el código de la tabla que canta bingo:</p>
+                    <input type="text" id="inputCodigoOfflineBingo" placeholder="Ej: OFF-001" style="width:100%; padding:8px;">
+                    <div id="resultadoOfflineBingo" style="margin-top:10px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmarOfflineBingo" class="btn btn-primary">Confirmar</button>
+                    <button id="btnCancelarOfflineBingo" class="btn btn-secondary">Continuar</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de tutorial -->
         <div id="modalTutorial" class="modal oculta">
             <div class="modal-content modal-tutorial">

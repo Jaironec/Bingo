@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     inicializarSocket();
     configurarEventListeners();
     configurarTutorial();
+    configurarOfflineListeners();
     mostrarPantalla('pantallaInicio');
     intentarRehidratarEstado();
 });
