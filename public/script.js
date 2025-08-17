@@ -1170,7 +1170,7 @@ function configurarOfflineListeners() {
     if (btnBingoOffline) btnBingoOffline.addEventListener('click', abrirModalOfflineBingo);
 
     const btnCancelarOfflineBingo = document.getElementById('btnCancelarOfflineBingo');
-    if (btnCancelarOfflineBingo) btnCancelarOfflineBingo.addEventListener('click', () => document.getElementById('modalOfflineBingo').classList.add('oculta'));
+    if (btnCancelarOfflineBingo) btnCancelarOfflineBingo.addEventListener('click', () => { document.getElementById('modalOfflineBingo').classList.add('oculta'); offline.enPausa = false; });
 
     const btnConfirmarOfflineBingo = document.getElementById('btnConfirmarOfflineBingo');
     if (btnConfirmarOfflineBingo) btnConfirmarOfflineBingo.addEventListener('click', verificarOfflineBingo);
@@ -1285,7 +1285,13 @@ function renderOfflineNumero(num) {
     if (cell) cell.classList.add('called');
 }
 
-function abrirModalOfflineBingo() { offline.enPausa = true; document.getElementById('modalOfflineBingo').classList.remove('oculta'); }
+function abrirModalOfflineBingo() {
+    offline.enPausa = true;
+    const modal = document.getElementById('modalOfflineBingo');
+    document.getElementById('resultadoOfflineBingo').innerHTML = '';
+    document.getElementById('offlineTablaPreview').innerHTML = '';
+    modal.classList.remove('oculta');
+}
 
 function verificarOfflineBingo() {
     const input = document.getElementById('inputCodigoOfflineBingo');
