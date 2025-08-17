@@ -1240,6 +1240,8 @@ function iniciarOffline() {
     document.getElementById('historialEventosOffline').innerHTML = '';
     const board = document.getElementById('offlineBingoBoard');
     board.innerHTML = '';
+    const banda = document.getElementById('offlineNumerosCantados');
+    if (banda) banda.innerHTML = '';
     'BINGO'.split('').forEach(ch => { const h = document.createElement('div'); h.className = 'cell header'; h.textContent = ch; board.appendChild(h); });
     for (let row=0; row<15; row++) {
         for (let col=0; col<5; col++) {
@@ -1391,34 +1393,33 @@ function mapDetalleAPatron(detalle) {
     return '';
 }
 function mapDetalleAResultado(resultado) {
-    // resultado.detalle puede ser 'Línea (vertical)' etc
     const r = {};
     if (!resultado || !resultado.ganado) return r;
-    if (resultado.detalle.includes('vertical')) r.columna = 1; // solo para activar la rama; no se usa índice exacto aquí
-    if (resultado.detalle.includes('horizontal')) r.fila = 1;
-    if (resultado.detalle.includes('principal')) r.diagonal = 'principal';
-    if (resultado.detalle.includes('secundaria')) r.diagonal = 'secundaria';
-    if (resultado.detalle.includes('Tabla Llena')) { /* nada especial */ }
+    if (resultado.fila) r.fila = resultado.fila;
+    if (resultado.columna) r.columna = resultado.columna;
+    if (resultado.diagonal) r.diagonal = resultado.diagonal;
+    if (resultado.detalle) {
+        if (resultado.detalle.includes('vertical')) r.columna = r.columna || 1;
+        if (resultado.detalle.includes('horizontal')) r.fila = r.fila || 1;
+        if (resultado.detalle.includes('principal')) r.diagonal = r.diagonal || 'principal';
+        if (resultado.detalle.includes('secundaria')) r.diagonal = r.diagonal || 'secundaria';
+    }
     return r;
 }
 
 function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
-    // Centro FREE
     const isMarked = (celda) => !!(celda && (cantados.includes(celda.numero) || celda.esLibre===true));
     const ultimo = cantados[cantados.length-1];
-    const incluyeUltimo = (fila,col)=>{ try { const c = tabla[fila][col]; return c.esLibre===true || c.numero===ultimo; } catch{return false;}}
-
-    // Evaluar en prioridad similar al online pero siempre exigiendo el último número en el patrón
     if (patronesHabilitados.includes('linea')) {
         for (let col=0; col<5; col++) {
             const completa = [0,1,2,3,4].every(f=>isMarked(tabla[f][col]));
             const contieneUlt = [0,1,2,3,4].some(f=>tabla[f][col].numero===ultimo);
-            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (vertical)'}
+            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (vertical)', columna: col+1}
         }
         for (let fila=0; fila<5; fila++) {
             const completa = tabla[fila].every(c=>isMarked(c));
             const contieneUlt = tabla[fila].some(c=>c.numero===ultimo);
-            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (horizontal)'}
+            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (horizontal)', fila: fila+1}
         }
     }
     if (patronesHabilitados.includes('cuatroEsquinas')) {
@@ -1428,21 +1429,18 @@ function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
         if (completas && ultimoEnCorners) return {ganado:true, detalle:'Cuatro Esquinas'}
     }
     if (patronesHabilitados.includes('loco')) {
-        // EXACTAMENTE 5 marcados y que uno de ellos sea el último
-        const marcados = new Set(cantados);
-        const countMarcadosEnTabla = tabla.flat().filter(c=>marcados.has(c.numero) || c.esLibre===true).length;
-        if (countMarcadosEnTabla >= 5 && marcados.has(ultimo)) {
-            // Validar que al menos 5 (no necesariamente únicos por columnas) estén marcados y último esté entre ellos
-            return {ganado:true, detalle:'LOCO (5 números)'}
-        }
+        // EXACTAMENTE 5 números cantados en esta tabla y que uno de ellos sea el último (FREE no cuenta)
+        const setCantados = new Set(cantados);
+        const cantCantadosEnTabla = tabla.flat().filter(c=>!c.esLibre && setCantados.has(c.numero)).length;
+        if (cantCantadosEnTabla === 5 && setCantados.has(ultimo)) return {ganado:true, detalle:'LOCO (5 números)'}
     }
     if (patronesHabilitados.includes('machetaso')) {
         const dPCompleta = [0,1,2,3,4].every(i=>isMarked(tabla[i][i]));
         const dSCompleta = [0,1,2,3,4].every(i=>isMarked(tabla[i][4-i]));
         const ultimoEnP = [0,1,2,3,4].some(i=>tabla[i][i].numero===ultimo);
         const ultimoEnS = [0,1,2,3,4].some(i=>tabla[i][4-i].numero===ultimo);
-        if (dPCompleta && ultimoEnP) return {ganado:true, detalle:'Machetaso (diagonal principal)'};
-        if (dSCompleta && ultimoEnS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)'};
+        if (dPCompleta && ultimoEnP) return {ganado:true, detalle:'Machetaso (diagonal principal)', diagonal: 'principal'};
+        if (dSCompleta && ultimoEnS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)', diagonal: 'secundaria'};
     }
     if (patronesHabilitados.includes('tablaLlena')) {
         const completa = tabla.every(fila=>fila.every(isMarked));
