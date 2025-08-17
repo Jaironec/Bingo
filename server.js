@@ -109,57 +109,49 @@ function verificarBingo(tabla, numerosMarcados, patron, numeroUltimo) {
   const isMarked = (celda) => !!(celda && (numerosSet.has(celda.numero) || celda.esLibre === true));
   
   switch (patron) {
-    case 'linea':
-      // Verificar líneas verticales primero
-      for (let col = 0; col < 5; col++) {
-        const completa = tabla.every(fila => isMarked(fila[col]));
-        if (completa && tabla.some((fila, f) => incluyeUltimo(f, col))) {
-          return { ganado: true, tipo: 'línea vertical', columna: col + 1 };
-        }
-      }
-      // Luego líneas horizontales
-      for (let fila = 0; fila < 5; fila++) {
-        const completa = tabla[fila].every(celda => isMarked(celda));
-        if (completa && tabla[fila].some(celda => celda.numero === numeroUltimo || celda.esLibre === true)) {
-          return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
-        }
-      }
-      break;
-      
     case 'tablaLlena':
       if (tabla.every(fila => fila.every(celda => isMarked(celda))) &&
           tabla.some(fila => fila.some(celda => celda.numero === numeroUltimo || celda.esLibre === true))) {
         return { ganado: true, tipo: 'tabla llena' };
       }
       break;
-      
     case 'cuatroEsquinas':
       const corners = [tabla[0][0], tabla[0][4], tabla[4][0], tabla[4][4]];
-      const completas = corners.every(c => isMarked(c));
+      const completas = corners.every(isMarked);
       const ultimoEnCorners = corners.some(c => c.numero === numeroUltimo);
       if (completas && ultimoEnCorners) {
         return { ganado: true, tipo: 'cuatro esquinas' };
       }
       break;
-      
-    case 'loco':
-      // LOCO: exactamente 5 números y que incluya el último cantado
-      if (numerosMarcados.length === 5 && numerosSet.has(numeroUltimo)) {
-        return { ganado: true, tipo: 'LOCO (5 números)' };
-      }
-      break;
-
     case 'machetaso':
-      // Cualquiera de las diagonales que pasan por el centro, e incluir el último
       const diagPCompleta = [0,1,2,3,4].every(i => isMarked(tabla[i][i]));
       const diagSCompleta = [0,1,2,3,4].every(i => isMarked(tabla[i][4 - i]));
-      const ultimoEnDiagP = [0,1,2,3,4].some(i => incluyeUltimo(i, i));
-      const ultimoEnDiagS = [0,1,2,3,4].some(i => incluyeUltimo(i, 4 - i));
+      const ultimoEnDiagP = [0,1,2,3,4].some(i => tabla[i][i].numero === numeroUltimo);
+      const ultimoEnDiagS = [0,1,2,3,4].some(i => tabla[i][4 - i].numero === numeroUltimo);
       if (diagPCompleta && ultimoEnDiagP) {
         return { ganado: true, tipo: 'machetaso (diagonal central)', diagonal: 'principal' };
       }
       if (diagSCompleta && ultimoEnDiagS) {
         return { ganado: true, tipo: 'machetaso (diagonal central)', diagonal: 'secundaria' };
+      }
+      break;
+    case 'loco':
+      if (numerosMarcados.filter(n => n!==0).length === 5 && numerosSet.has(numeroUltimo)) {
+        return { ganado: true, tipo: 'LOCO (5 números)' };
+      }
+      break;
+    case 'linea':
+      for (let col = 0; col < 5; col++) {
+        const completa = tabla.every(fila => isMarked(fila[col]));
+        if (completa && tabla.some((fila, f) => incluyeUltimo(f, col))) {
+          return { ganado: true, tipo: 'línea vertical', columna: col + 1 };
+        }
+      }
+      for (let fila = 0; fila < 5; fila++) {
+        const completa = tabla[fila].every(celda => isMarked(celda));
+        if (completa && tabla[fila].some(celda => celda.numero === numeroUltimo || celda.esLibre === true)) {
+          return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
+        }
       }
       break;
   }

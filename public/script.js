@@ -1149,7 +1149,7 @@ let offline = {
 function configurarOfflineListeners() {
     const go = (id) => { document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculta')); document.getElementById(id).classList.remove('oculta'); };
     const btnPresencial = document.getElementById('btnModoPresencial');
-    if (btnPresencial) btnPresencial.addEventListener('click', () => go('pantallaOfflineSetup'));
+    if (btnPresencial) btnPresencial.addEventListener('click', () => { go('pantallaOfflineSetup'); poblarSelectorCodigos(); });
     const btnVolverInicioOffline = document.getElementById('btnVolverInicioOffline');
     if (btnVolverInicioOffline) btnVolverInicioOffline.addEventListener('click', () => go('pantallaInicio'));
 
@@ -1179,6 +1179,25 @@ function configurarOfflineListeners() {
         const gano = verificarOfflineBingo();
         if (gano) btnConfirmarOfflineBingo.disabled = true;
     });
+}
+
+function poblarSelectorCodigos() {
+    const cont = document.getElementById('offlineCodesPick');
+    if (!cont) return;
+    cont.innerHTML = '';
+    for (let i=1; i<=21; i++) {
+        const code = `OFF-${String(i).padStart(3,'0')}`;
+        const chip = document.createElement('div');
+        chip.className = 'code-chip';
+        chip.textContent = code;
+        chip.dataset.code = code;
+        chip.addEventListener('click', () => chip.classList.toggle('selected'));
+        cont.appendChild(chip);
+    }
+}
+
+function obtenerCodigosSeleccionados() {
+    return Array.from(document.querySelectorAll('#offlineCodesPick .code-chip.selected')).map(el=>el.dataset.code);
 }
 
 function imprimirTablasOffline() {
@@ -1227,7 +1246,7 @@ function generarTablasFijas(seed, cantidad) {
 }
 
 function iniciarOffline() {
-    const codigos = document.getElementById('codigosOffline').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const codigos = obtenerCodigosSeleccionados();
     offline.codigosFijos = codigos;
     const patrones = [];
     if (document.getElementById('offlinePatronLinea').checked) patrones.push('linea');

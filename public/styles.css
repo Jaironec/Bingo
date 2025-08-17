@@ -1640,3 +1640,8 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 /* Modal offline: tamaño y scroll mejorados */
 #modalOfflineBingo .modal-content { max-width: 760px; max-height: 80vh; overflow: auto; padding: 18px; }
 #modalOfflineBingo .modal-body { margin-bottom: 10px; }
+
+/* Panel derecho: historial ocupa todo */
+.panel-derecho { display:flex; flex-direction:column; }
+.panel-derecho .historial { flex:1; display:flex; flex-direction:column; }
+.panel-derecho .lista-historial { flex:1; }
