@@ -1594,3 +1594,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .offline-bingo-board .cell { display:flex; align-items:center; justify-content:center; border: 1px solid #e2e8f0; border-radius: 6px; font-weight:700; font-size: clamp(0.55rem, 1.1vw, 0.95rem); background:#fff; }
 .offline-bingo-board .cell.header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; font-size: clamp(0.8rem, 1.6vw, 1.2rem); }
 .offline-bingo-board .cell.called { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: #fff; border: none; }
+
+/* Apariencia de celdas como online */
+.offline-bingo-board .cell { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+.offline-bingo-board .cell.called { box-shadow: 0 2px 6px rgba(221,107,32,0.25); }
