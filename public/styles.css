@@ -1636,3 +1636,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 .result-card.winner .status { background:#c6f6d5; color:#22543d; }
 .result-card.loser .status { background:#fed7d7; color:#742a2a; }
 .result-card .detail { color:#2d3748; font-size:0.9rem; margin-bottom:6px; }
+
+/* Modal offline: tamaño y scroll mejorados */
+#modalOfflineBingo .modal-content { max-width: 760px; max-height: 80vh; overflow: auto; padding: 18px; }
+#modalOfflineBingo .modal-body { margin-bottom: 10px; }
