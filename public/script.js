@@ -13,6 +13,8 @@ let ultimoEventoHist = { texto: '', tiempo: 0 };
 // Cooldown para declarar bingo
 let ultimoBingoClickMs = 0;
 const BINGO_COOLDOWN_MS = 1500;
+let ultimoBingoClickNumero = null;
+let ultimoBingoClickPatron = null;
 
 // Función para obtener letra B-I-N-G-O según el número
 function obtenerLetraBingo(numero) {
@@ -236,11 +238,6 @@ function marcarNumero(numero) {
 
 function declararBingo(e) {
     const ahora = Date.now();
-    if (ahora - ultimoBingoClickMs < BINGO_COOLDOWN_MS) {
-        mostrarNotificacion('Espera un momento antes de declarar de nuevo', 'info');
-        return;
-    }
-    ultimoBingoClickMs = ahora;
     const patron = e.target.closest('.btn-bingo').dataset.patron;
     const numeroActual = document.getElementById('numeroActual').textContent;
     
@@ -249,6 +246,17 @@ function declararBingo(e) {
     if (numeroActual.match(/^[BINGO]\d+$/)) {
         numeroGanador = numeroActual.substring(1); // Quitar la letra
     }
+
+    // Anti-spam: permitir múltiples declaraciones con el MISMO número (ej: B11) para patrones distintos en una ventana corta
+    const mismoNumeroQueAntes = ultimoBingoClickNumero === numeroGanador;
+    const ventanaActiva = (ahora - ultimoBingoClickMs) < BINGO_COOLDOWN_MS;
+    if (!mismoNumeroQueAntes && ventanaActiva) {
+        mostrarNotificacion('Espera un momento antes de declarar de nuevo', 'info');
+        return;
+    }
+    ultimoBingoClickMs = ahora;
+    ultimoBingoClickNumero = numeroGanador;
+    ultimoBingoClickPatron = patron;
     
     socket.emit('declararBingo', {
         salaId: salaActual.id,
@@ -435,7 +443,8 @@ function manejarBingoDeclarado(ganador) {
     const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
     if (btn) btn.disabled = true;
     if (ganador.patron !== 'tablaLlena') {
-        iniciarTemporizadorModal(5);
+        const esMiGanancia = jugadorActual && ganador.jugador && ganador.jugador.id === jugadorActual.id;
+        iniciarTemporizadorModal(esMiGanancia ? 1 : 5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     } else {
         iniciarCuentaRegresivaFinal(5);
@@ -1393,6 +1402,7 @@ function verificarOfflineBingo() {
             patronCard = resAllowed.patron;
             statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${resAllowed.detalle}</div>`;
             patronesGanadoresEstaVerificacion.add(resAllowed.patron);
+            agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resAllowed.detalle}`);
             huboGanadores = true;
         } else if (resFull.ganado && offline.patronesGanados.has(resFull.patron)) {
             card.classList.add('loser');
@@ -1423,7 +1433,25 @@ function verificarOfflineBingo() {
     cards.forEach(c => resDiv.appendChild(c));
     patronesGanadoresEstaVerificacion.forEach(p => offline.patronesGanados.add(p));
     if (patronesGanadoresEstaVerificacion.has('tablaLlena')) {
-        finalizarOfflineSiTablaLlena();
+        // Mantener el modal visible con el resumen de ganadores y una cuenta regresiva
+        const btnConfirmar = document.getElementById('btnConfirmarOfflineBingo');
+        if (btnConfirmar) btnConfirmar.disabled = true;
+        let restantes = 5;
+        const btnContinuar = document.getElementById('btnCancelarOfflineBingo');
+        if (btnContinuar) {
+            btnContinuar.textContent = `Volviendo en ${restantes}...`;
+            btnContinuar.disabled = true;
+            const timer = setInterval(() => {
+                restantes -= 1;
+                if (btnContinuar) btnContinuar.textContent = `Volviendo en ${restantes}...`;
+                if (restantes <= 0) {
+                    clearInterval(timer);
+                    finalizarOfflineSiTablaLlena();
+                }
+            }, 1000);
+        } else {
+            finalizarOfflineSiTablaLlena();
+        }
     }
     return huboGanadores;
 }
