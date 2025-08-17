@@ -1173,7 +1173,10 @@ function configurarOfflineListeners() {
     if (btnCancelarOfflineBingo) btnCancelarOfflineBingo.addEventListener('click', () => { document.getElementById('modalOfflineBingo').classList.add('oculta'); offline.enPausa = false; });
 
     const btnConfirmarOfflineBingo = document.getElementById('btnConfirmarOfflineBingo');
-    if (btnConfirmarOfflineBingo) btnConfirmarOfflineBingo.addEventListener('click', verificarOfflineBingo);
+    if (btnConfirmarOfflineBingo) btnConfirmarOfflineBingo.addEventListener('click', () => {
+        const gano = verificarOfflineBingo();
+        if (gano) btnConfirmarOfflineBingo.disabled = true;
+    });
 }
 
 function imprimirTablasOffline() {
@@ -1296,11 +1299,11 @@ function abrirModalOfflineBingo() {
 function verificarOfflineBingo() {
     const input = document.getElementById('inputCodigoOfflineBingo');
     const codigo = input.value.trim();
-    if (!codigo) { mostrarNotificacion('Ingresa un código', 'error'); return; }
+    if (!codigo) { mostrarNotificacion('Ingresa un código', 'error'); return false; }
     if (offline.codigosFijos.length && !offline.codigosFijos.includes(codigo)) {
-        mostrarNotificacion('Código no ingresado en esta partida', 'error'); return;
+        mostrarNotificacion('Código no ingresado en esta partida', 'error'); return false;
     }
-    const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) { mostrarNotificacion('Código inválido', 'error'); return; }
+    const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) { mostrarNotificacion('Código inválido', 'error'); return false; }
     const tablaObj = generarTablasFijas(12345, idx+1)[idx];
     const resultado = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
     const resDiv = document.getElementById('resultadoOfflineBingo');
@@ -1311,7 +1314,6 @@ function verificarOfflineBingo() {
     } else {
         resDiv.innerHTML = `<span style='color:#c53030;'>❌ ${codigo} no tiene bingo válido</span>`;
     }
-    // Render preview con resaltado similar al online
     preview.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
         fila.map((celda, colIndex) => {
             const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
@@ -1321,6 +1323,7 @@ function verificarOfflineBingo() {
             return `${contenido}</span>`;
         }).join('')
     ).join('');
+    return !!resultado.ganado;
 }
 
 function mapDetalleAPatron(detalle) {
