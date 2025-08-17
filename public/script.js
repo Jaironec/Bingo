@@ -443,8 +443,7 @@ function manejarBingoDeclarado(ganador) {
     const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
     if (btn) btn.disabled = true;
     if (ganador.patron !== 'tablaLlena') {
-        const esMiGanancia = jugadorActual && ganador.jugador && ganador.jugador.id === jugadorActual.id;
-        iniciarTemporizadorModal(esMiGanancia ? 1 : 5);
+        iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     } else {
         iniciarCuentaRegresivaFinal(5);
