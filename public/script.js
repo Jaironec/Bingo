@@ -1177,20 +1177,25 @@ function configurarOfflineListeners() {
 }
 
 function imprimirTablasOffline() {
-    // Generar 21 tablas fijas reproducibles a partir de una semilla constante
     const pdfWindow = window.open('', '_blank');
-    const seed = 12345; // semilla fija
+    const seed = 12345;
     const tablas = generarTablasFijas(seed, 21);
-    const estilos = `<style>body{font-family:Arial;padding:20px} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} .card{border:1px solid #ccc;border-radius:8px;padding:8px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;text-align:center;padding:6px} .cod{font-weight:700;margin:6px 0} .free{background:#faf089}</style>`;
-    let html = `<html><head><title>Tablas Presenciales</title>${estilos}</head><body><h2>Tablas Presenciales</h2><div class='grid'>`;
-    tablas.forEach((t,i) => {
-        html += `<div class='card'><div class='cod'>OFF-${String(i+1).padStart(3,'0')}</div><table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
-        t.numeros.forEach((fila,fIdx)=>{
-            html += '<tr>' + fila.map((c, cIdx)=> (fIdx===2 && cIdx===2)? `<td class='free'>FREE</td>` : `<td>${c.numero}</td>`).join('') + '</tr>';
+    const estilos = `<style>@page{size:A4;margin:10mm}body{font-family:Arial;padding:0;margin:0} .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:10px} .card{border:2px solid #333;border-radius:10px;padding:10px;break-inside:avoid} table{width:100%;border-collapse:collapse} th,td{border:1px solid #000;text-align:center;padding:8px;font-size:14px} .cod{font-weight:700;margin:6px 0;font-size:16px} .free{background:#faf089;font-weight:700} .page-break{page-break-after:always}</style>`;
+    let html = `<html><head><title>Tablas Presenciales</title>${estilos}</head><body>`;
+    for (let i=0;i<tablas.length;i+=6){
+        html += `<div class='grid'>`;
+        tablas.slice(i,i+6).forEach((t,idx) => {
+            const globalIdx = i+idx;
+            html += `<div class='card'><div class='cod'>OFF-${String(globalIdx+1).padStart(3,'0')}</div><table><thead><tr><th>B</th><th>I</th><th>N</th><th>G</th><th>O</th></tr></thead><tbody>`;
+            t.numeros.forEach((fila,fIdx)=>{
+                html += '<tr>' + fila.map((c, cIdx)=> (fIdx===2 && cIdx===2)? `<td class='free'>★</td>` : `<td>${c.numero}</td>`).join('') + '</tr>';
+            });
+            html += `</tbody></table></div>`;
         });
-        html += `</tbody></table></div>`;
-    });
-    html += `</div></body></html>`;
+        html += `</div>`;
+        if (i+6<tablas.length) html += `<div class='page-break'></div>`;
+    }
+    html += `</body></html>`;
     pdfWindow.document.write(html);
     pdfWindow.document.close();
     pdfWindow.focus();
@@ -1228,7 +1233,18 @@ function iniciarOffline() {
     offline.patrones = patrones;
     offline.numerosCantados = [];
     document.getElementById('historialEventosOffline').innerHTML = '';
-    document.querySelectorAll('#offlineNumerosGrid .numero-item').forEach(el=>el.remove());
+    const board = document.getElementById('offlineBingoBoard');
+    board.innerHTML = '';
+    // Render BINGO headers
+    'BINGO'.split('').forEach(ch => {
+        const h = document.createElement('div'); h.className = 'cell header'; h.textContent = ch; board.appendChild(h);
+    });
+    // Render 1..75 grid by columns (5x15)
+    for (let row=0; row<15; row++) {
+        for (let col=0; col<5; col++) {
+            const base = col*15+1; const num = base+row; const c = document.createElement('div'); c.className = 'cell'; c.dataset.num = String(num); c.textContent = num; board.appendChild(c);
+        }
+    }
     document.getElementById('offlineNumeroActual').textContent = '-';
     document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculta'));
     document.getElementById('pantallaOfflineJuego').classList.remove('oculta');
@@ -1261,10 +1277,9 @@ function togglePausaOffline() {
 function pararOffline() { if (offline.intervalo) clearInterval(offline.intervalo); offline.intervalo = null; }
 
 function renderOfflineNumero(num) {
-    const grid = document.getElementById('offlineNumerosGrid');
-    const div = document.createElement('div');
-    div.className = 'numero-item cantado';
-    div.textContent = num; grid.appendChild(div);
+    const board = document.getElementById('offlineBingoBoard');
+    const cell = board.querySelector(`.cell[data-num="${num}"]`);
+    if (cell) cell.classList.add('called');
 }
 
 function abrirModalOfflineBingo() { offline.enPausa = true; document.getElementById('modalOfflineBingo').classList.remove('oculta'); }
