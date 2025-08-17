@@ -359,7 +359,7 @@ io.on('connection', (socket) => {
     
     // Verificar que este patrón no haya sido ganado ya
     const ultimoNumeroCantado = sala.numerosCantados[sala.numerosCantados.length - 1];
-    const huboGanadorPrevioMismoPatron = sala.ganadores.some(g => g.patron === data.patron && g.numeroGanador !== ultimoNumeroCantado);
+    const huboGanadorPrevioMismoPatron = sala.ganadores.some(g => g.patron === data.patron && Number(g.numeroGanador) !== Number(ultimoNumeroCantado));
     const jugadorYaGanoEstePatron = sala.ganadores.some(g => g.patron === data.patron && g.jugador.id === socket.id);
     if (huboGanadorPrevioMismoPatron || jugadorYaGanoEstePatron) {
       console.log(`Patrón ${data.patron} ya fue ganado antes o por este jugador`);

@@ -1279,25 +1279,32 @@ function iniciarOffline() {
 function iniciarCantoOffline() {
     if (offline.intervalo) clearInterval(offline.intervalo);
     if (offline.timeoutStart) clearTimeout(offline.timeoutStart);
-    const todos = Array.from({length:75}, (_,i)=>i+1);
-    let disponibles = [...todos];
-    function pick(){ return disponibles.splice(Math.floor(Math.random()*disponibles.length),1)[0]; }
-    function tick(){
+    offline.enPausa = false;
+    offline.terminado = false;
+    offline._numerosDisponibles = Array.from({ length: 75 }, (_, i) => i + 1);
+    function tick() {
+        if (offline.terminado) return;
         if (offline.enPausa) return;
-        if (disponibles.length===0) { pararOffline(); agregarEventoHistorialOffline('⏹️ Fin: se cantaron todos los números'); return; }
-        const num = pick(); offline.numerosCantados.push(num);
+        if (offline.patronesGanados && offline.patronesGanados.has('tablaLlena')) {
+            offline.terminado = true;
+            finalizarOfflineSiTablaLlena();
+            return;
+        }
+        if (!offline._numerosDisponibles || offline._numerosDisponibles.length === 0) {
+            pararOffline();
+            agregarEventoHistorialOffline('⏹️ Fin: se cantaron todos los números');
+            return;
+        }
+        const idx = Math.floor(Math.random() * offline._numerosDisponibles.length);
+        const num = offline._numerosDisponibles.splice(idx, 1)[0];
+        offline.numerosCantados.push(num);
         const letra = obtenerLetraBingo(num);
         document.getElementById('offlineNumeroActual').textContent = `${letra}${num}`;
         renderOfflineNumero(num);
         if (typeof playNumberCalled === 'function') playNumberCalled();
         reproducirVozNumero(num, letra);
     }
-    offline.enPausa = false;
-    const initialDelay = Math.max(800, Math.min(2000, offline.velocidad));
-    offline.timeoutStart = setTimeout(() => {
-        tick();
-        offline.intervalo = setInterval(tick, offline.velocidad);
-    }, initialDelay);
+    offline.intervalo = setInterval(tick, offline.velocidad);
 }
 
 function togglePausaOffline() {
@@ -1415,7 +1422,28 @@ function verificarOfflineBingo() {
     // Pintar todas las tarjetas y después fijar patrones ganados
     cards.forEach(c => resDiv.appendChild(c));
     patronesGanadoresEstaVerificacion.forEach(p => offline.patronesGanados.add(p));
+    if (patronesGanadoresEstaVerificacion.has('tablaLlena')) {
+        finalizarOfflineSiTablaLlena();
+    }
     return huboGanadores;
+}
+
+function finalizarOfflineSiTablaLlena() {
+    if (offline._finProgramado) return;
+    offline._finProgramado = true;
+    pararOffline();
+    agregarEventoHistorialOffline('🏁 Tabla Llena: finalizando en 5s');
+    mostrarNotificacion('¡Tabla Llena! Finalizando en 5 segundos...', 'exito');
+    const modal = document.getElementById('modalOfflineBingo');
+    if (modal) modal.classList.add('oculta');
+    setTimeout(() => {
+        const pantalla = document.getElementById('pantallaOfflineJuego');
+        if (pantalla) pantalla.classList.add('oculta');
+        offline.enPausa = false;
+        offline.terminado = true;
+        offline._finProgramado = false;
+        volverInicio();
+    }, 5000);
 }
 
 function mapDetalleAPatron(detalle) {
