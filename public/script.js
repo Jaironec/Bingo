@@ -1262,8 +1262,12 @@ function iniciarCantoOffline() {
         if (offline.enPausa) return;
         if (disponibles.length===0) { pararOffline(); agregarEventoHistorialOffline('⏹️ Fin: se cantaron todos los números'); return; }
         const num = pick(); offline.numerosCantados.push(num);
-        document.getElementById('offlineNumeroActual').textContent = num;
+        const letra = obtenerLetraBingo(num);
+        document.getElementById('offlineNumeroActual').textContent = `${letra}${num}`;
         renderOfflineNumero(num);
+        // Sonido/voz similar a online
+        playNumberCalled?.();
+        reproducirVozNumero(num, letra);
     }, offline.velocidad);
 }
 
