@@ -351,7 +351,13 @@ io.on('connection', (socket) => {
   // Declarar bingo
   socket.on('declararBingo', (data) => {
     const sala = salas.get(data.salaId);
-    if (!sala || !sala.juegoActivo) return;
+    if (!sala) return;
+    // Permitir declarar durante la pausa si es con el mismo último número, pero bloquear si ya terminó por tabla llena
+    const yaTerminoPorTablaLlena = sala.ganadores.some(g => g.patron === 'tablaLlena');
+    if (yaTerminoPorTablaLlena) {
+      socket.emit('error', { mensaje: 'El juego ya terminó por Tabla Llena' });
+      return;
+    }
     sala._ultimaActividad = Date.now();
     
     const jugador = sala.jugadores.find(j => j.id === socket.id);

@@ -13,6 +13,8 @@ let ultimoEventoHist = { texto: '', tiempo: 0 };
 // Cooldown para declarar bingo
 let ultimoBingoClickMs = 0;
 const BINGO_COOLDOWN_MS = 1500;
+let ultimoBingoClickNumero = null;
+let ultimoBingoClickPatron = null;
 
 // Función para obtener letra B-I-N-G-O según el número
 function obtenerLetraBingo(numero) {
@@ -236,11 +238,6 @@ function marcarNumero(numero) {
 
 function declararBingo(e) {
     const ahora = Date.now();
-    if (ahora - ultimoBingoClickMs < BINGO_COOLDOWN_MS) {
-        mostrarNotificacion('Espera un momento antes de declarar de nuevo', 'info');
-        return;
-    }
-    ultimoBingoClickMs = ahora;
     const patron = e.target.closest('.btn-bingo').dataset.patron;
     const numeroActual = document.getElementById('numeroActual').textContent;
     
@@ -249,6 +246,17 @@ function declararBingo(e) {
     if (numeroActual.match(/^[BINGO]\d+$/)) {
         numeroGanador = numeroActual.substring(1); // Quitar la letra
     }
+
+    // Anti-spam: permitir múltiples declaraciones con el MISMO número (ej: B11) para patrones distintos en una ventana corta
+    const mismoNumeroQueAntes = ultimoBingoClickNumero === numeroGanador;
+    const ventanaActiva = (ahora - ultimoBingoClickMs) < BINGO_COOLDOWN_MS;
+    if (!mismoNumeroQueAntes && ventanaActiva) {
+        mostrarNotificacion('Espera un momento antes de declarar de nuevo', 'info');
+        return;
+    }
+    ultimoBingoClickMs = ahora;
+    ultimoBingoClickNumero = numeroGanador;
+    ultimoBingoClickPatron = patron;
     
     socket.emit('declararBingo', {
         salaId: salaActual.id,
@@ -435,7 +443,8 @@ function manejarBingoDeclarado(ganador) {
     const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
     if (btn) btn.disabled = true;
     if (ganador.patron !== 'tablaLlena') {
-        iniciarTemporizadorModal(5);
+        const esMiGanancia = jugadorActual && ganador.jugador && ganador.jugador.id === jugadorActual.id;
+        iniciarTemporizadorModal(esMiGanancia ? 1 : 5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     } else {
         iniciarCuentaRegresivaFinal(5);
