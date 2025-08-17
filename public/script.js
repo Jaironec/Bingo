@@ -1394,34 +1394,45 @@ function verificarOfflineBingo() {
             return;
         }
         const tablaObj = generarTablasFijas(12345, idx+1)[idx];
-        const resAllowed = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, allowedPatterns);
+        // Evaluar múltiples patrones posibles con el mismo último número
+        const winnersForCard = [];
+        allowedPatterns.forEach(p => {
+            const resP = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, [p]);
+            if (resP && resP.ganado) {
+                winnersForCard.push(resP);
+                patronesGanadoresEstaVerificacion.add(resP.patron);
+                agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resP.detalle}`);
+                huboGanadores = true;
+            }
+        });
+        // Resultado completo (para mostrar "Patrón ya ganado" si aplica)
         const resFull = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
         let statusHtml = '';
-        if (resAllowed.ganado) {
+        if (winnersForCard.length > 0) {
             card.classList.add('winner');
-            patronCard = resAllowed.patron;
-            statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${resAllowed.detalle}</div>`;
-            patronesGanadoresEstaVerificacion.add(resAllowed.patron);
-            agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resAllowed.detalle}`);
-            huboGanadores = true;
+            const detalles = winnersForCard.map(w => w.detalle).join(' • ');
+            statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${detalles}</div>`;
         } else if (resFull.ganado && offline.patronesGanados.has(resFull.patron)) {
             card.classList.add('loser');
-            patronCard = resFull.patron;
             statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Patrón ya ganado</span></div>`;
         } else {
             card.classList.add('loser');
             statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Sin bingo</span></div>`;
         }
         card.innerHTML = statusHtml;
-        // tabla preview
+        // tabla preview con resaltado de todos los patrones ganados de esta tarjeta
         const mini = document.createElement('div');
         mini.className = 'tabla-bingo-mini';
         mini.style.marginTop = '8px';
-        const resForPreview = resAllowed.ganado ? resAllowed : resFull;
         mini.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
             fila.map((celda, colIndex) => {
                 const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
-                const esGanador = esGanadorEnPatron(resForPreview.patron, mapDetalleAResultado(resForPreview), filaIndex, colIndex, esMarcado);
+                let esGanador = false;
+                if (winnersForCard.length > 0) {
+                    esGanador = winnersForCard.some(w => esGanadorEnPatron(w.patron, mapDetalleAResultado(w), filaIndex, colIndex, esMarcado));
+                } else if (resFull && resFull.ganado) {
+                    esGanador = esGanadorEnPatron(resFull.patron, mapDetalleAResultado(resFull), filaIndex, colIndex, esMarcado);
+                }
                 const contenido = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
                 return `${contenido}</span>`;
             }).join('')
