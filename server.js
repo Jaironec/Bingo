@@ -384,10 +384,10 @@ io.on('connection', (socket) => {
     console.log(`- Números cantados:`, sala.numerosCantados);
     console.log(`- Números marcados por ${jugador.nombre}:`, jugador.numerosMarcados);
     
-    // En bingo real, solo puedes declarar bingo si el último número que marcaste es el último cantado
-    if (ultimoNumeroMarcado !== ultimoNumeroCantado) {
-      console.log(`❌ Bingo inválido: último número marcado ${ultimoNumeroMarcado} no es el último cantado ${ultimoNumeroCantado}`);
-      socket.emit('error', { mensaje: 'Bingo inválido: debes declarar bingo con el último número que marcaste' });
+    // Reglas: debes haber marcado el último número cantado y el patrón debe incluirlo
+    if (!jugador.numerosMarcados.includes(ultimoNumeroCantado)) {
+      console.log(`❌ Bingo inválido: no has marcado el último número cantado (${ultimoNumeroCantado})`);
+      socket.emit('error', { mensaje: 'Bingo inválido: debes haber marcado el último número cantado' });
       return;
     }
     
@@ -419,6 +419,8 @@ io.on('connection', (socket) => {
     console.log(`- Resultado de validación:`, resultado);
     
     if (resultado.ganado) {
+      // Ganador principal (patrón declarado)
+      const winnersToEmit = [];
       const ganador = {
         jugador: {
           id: jugador.id,
@@ -430,26 +432,64 @@ io.on('connection', (socket) => {
         resultado: resultado,
         numeroGanador: data.numeroGanador
       };
-      
       sala.ganadores.push(ganador);
-      
-      // Solo detener el juego si es "tabla llena"
-      if (data.patron === 'tablaLlena') {
+      winnersToEmit.push(ganador);
+
+      // Auto-otorgar otros patrones válidos con el mismo último número para este jugador
+      const otrosPatrones = (sala.configuracion?.patrones || []).filter(p => p !== data.patron);
+      for (const p of otrosPatrones) {
+        const huboGanadorPrevioMismoPatronX = sala.ganadores.some(g => g.patron === p && Number(g.numeroGanador) !== Number(ultimoNumeroCantado));
+        const jugadorYaGanoEstePatronX = sala.ganadores.some(g => g.patron === p && g.jugador.id === socket.id);
+        if (huboGanadorPrevioMismoPatronX || jugadorYaGanoEstePatronX) continue;
+        const resX = verificarBingo(
+          jugador.tablaSeleccionada.numeros,
+          numerosValidos,
+          p,
+          ultimoNumeroCantado
+        );
+        if (resX.ganado) {
+          const ganadorX = {
+            jugador: {
+              id: jugador.id,
+              nombre: jugador.nombre,
+              tablaSeleccionada: jugador.tablaSeleccionada,
+              numerosMarcados: numerosValidos
+            },
+            patron: p,
+            resultado: resX,
+            numeroGanador: data.numeroGanador
+          };
+          sala.ganadores.push(ganadorX);
+          winnersToEmit.push(ganadorX);
+        }
+      }
+
+      // Emitir todos los ganadores detectados en esta declaración
+      let huboTablaLlena = false;
+      for (const w of winnersToEmit) {
+        io.to(data.salaId).emit('bingoDeclarado', w);
+        console.log(`¡BINGO! ${w.jugador.nombre} ganó con ${w.resultado.tipo}`);
+        if (w.patron === 'tablaLlena') huboTablaLlena = true;
+      }
+
+      // Control de pausa/reanudación o fin de juego
+      if (huboTablaLlena) {
         sala.juegoActivo = false; // Detener el juego permanentemente
-        io.to(data.salaId).emit('bingoDeclarado', ganador);
         io.to(data.salaId).emit('juegoTerminado', { mensaje: `¡${jugador.nombre} ganó con ${resultado.tipo}!` });
       } else {
-        // Para otros patrones, pausar el canto por 5 segundos
-        sala.juegoActivo = false; // Pausa temporal
+        // Pausa temporal única
+        sala.juegoActivo = false;
         setTimeout(() => {
-          sala.juegoActivo = true;
-          io.to(data.salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+          // Si alguien hizo tabla llena en esta ventana, no reanudar
+          const termino = sala.ganadores.some(g => g.patron === 'tablaLlena');
+          if (!termino) {
+            sala.juegoActivo = true;
+            io.to(data.salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+          }
         }, 5000);
       }
       
       console.log(`- Estado del juego DESPUÉS:`, sala.juegoActivo);
-      io.to(data.salaId).emit('bingoDeclarado', ganador);
-      console.log(`¡BINGO! ${jugador.nombre} ganó con ${resultado.tipo}`);
     } else {
       console.log(`Bingo inválido para ${jugador.nombre} con patrón ${data.patron}`);
       socket.emit('error', { mensaje: 'Bingo inválido' });
