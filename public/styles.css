@@ -1619,3 +1619,8 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 /* Números Cantados en offline */
 .numeros-cantados.offline { margin-top: 10px; }
 .numeros-cantados.offline .numeros-grid { grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); gap: 6px; }
+
+/* Lista de códigos seleccionables en modal offline */
+.codes-list { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.code-chip { padding:6px 10px; border:1px solid #cbd5e0; border-radius:999px; cursor:pointer; user-select:none; font-weight:600; color:#2d3748; background:#edf2f7; }
+.code-chip.selected { background:#c6f6d5; border-color:#68d391; color:#22543d; }

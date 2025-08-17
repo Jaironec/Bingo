@@ -1312,37 +1312,62 @@ function abrirModalOfflineBingo() {
     document.getElementById('offlineTablaPreview').innerHTML = '';
     const btnConfirmar = document.getElementById('btnConfirmarOfflineBingo');
     if (btnConfirmar) btnConfirmar.disabled = false;
+    // Poblar lista de códigos
+    const list = document.getElementById('offlineCodesList');
+    list.innerHTML = '';
+    (offline.codigosFijos || []).forEach(code => {
+        const chip = document.createElement('div');
+        chip.className = 'code-chip';
+        chip.textContent = code;
+        chip.dataset.code = code;
+        chip.addEventListener('click', () => chip.classList.toggle('selected'));
+        list.appendChild(chip);
+    });
     modal.classList.remove('oculta');
 }
 
 function verificarOfflineBingo() {
-    const input = document.getElementById('inputCodigoOfflineBingo');
-    const codigo = input.value.trim();
-    if (!codigo) { mostrarNotificacion('Ingresa un código', 'error'); return false; }
-    if (offline.codigosFijos.length && !offline.codigosFijos.includes(codigo)) {
-        mostrarNotificacion('Código no ingresado en esta partida', 'error'); return false;
-    }
-    const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) { mostrarNotificacion('Código inválido', 'error'); return false; }
-    const tablaObj = generarTablasFijas(12345, idx+1)[idx];
-    const resultado = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
     const resDiv = document.getElementById('resultadoOfflineBingo');
     const preview = document.getElementById('offlineTablaPreview');
-    if (resultado.ganado) {
-        resDiv.innerHTML = `<span style='color:#2f855a;'>✅ ${codigo} ganó: ${resultado.detalle}</span>`;
-        agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resultado.detalle}`);
-    } else {
-        resDiv.innerHTML = `<span style='color:#c53030;'>❌ ${codigo} no tiene bingo válido</span>`;
-    }
-    preview.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
-        fila.map((celda, colIndex) => {
-            const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
-            const patron = mapDetalleAPatron(resultado.detalle);
-            const esGanador = esGanadorEnPatron(patron, mapDetalleAResultado(resultado), filaIndex, colIndex, esMarcado);
-            const contenido = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
-            return `${contenido}</span>`;
-        }).join('')
-    ).join('');
-    return !!resultado.ganado;
+    resDiv.innerHTML = '';
+    preview.innerHTML = '';
+    // Tomar códigos seleccionados o usar el input manual como respaldo
+    const selected = Array.from(document.querySelectorAll('#offlineCodesList .code-chip.selected')).map(el => el.dataset.code);
+    const manual = document.getElementById('inputCodigoOfflineBingo').value.trim();
+    const codes = [...new Set([ ...selected, ...(manual ? [manual] : []) ])];
+    if (codes.length === 0) { mostrarNotificacion('Selecciona o ingresa al menos un código', 'error'); return false; }
+    let huboGanadores = false;
+    codes.forEach(codigo => {
+        if (offline.codigosFijos.length && !offline.codigosFijos.includes(codigo)) {
+            resDiv.innerHTML += `<div style='color:#c53030;'>${codigo}: no está en esta partida</div>`;
+            return;
+        }
+        const idx = parseInt(codigo.split('-')[1],10)-1; if (isNaN(idx) || idx<0) { resDiv.innerHTML += `<div style='color:#c53030;'>${codigo}: código inválido</div>`; return; }
+        const tablaObj = generarTablasFijas(12345, idx+1)[idx];
+        const resultado = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
+        if (resultado.ganado) {
+            resDiv.innerHTML += `<div style='color:#2f855a;'>✅ ${codigo} ganó: ${resultado.detalle}</div>`;
+            agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resultado.detalle}`);
+            huboGanadores = true;
+        } else {
+            resDiv.innerHTML += `<div style='color:#c53030;'>❌ ${codigo} no tiene bingo válido</div>`;
+        }
+        // Dibujar una tarjeta preview por código
+        const card = document.createElement('div');
+        card.className = 'tabla-bingo-mini';
+        card.style.marginTop = '8px';
+        card.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
+            fila.map((celda, colIndex) => {
+                const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
+                const patron = mapDetalleAPatron(resultado.detalle);
+                const esGanador = esGanadorEnPatron(patron, mapDetalleAResultado(resultado), filaIndex, colIndex, esMarcado);
+                const contenido = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
+                return `${contenido}</span>`;
+            }).join('')
+        ).join('');
+        preview.appendChild(card);
+    });
+    return huboGanadores;
 }
 
 function mapDetalleAPatron(detalle) {
