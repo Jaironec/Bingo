@@ -366,14 +366,16 @@ io.on('connection', (socket) => {
     if (!jugador || !jugador.tablaSeleccionada) return;
     
     // Verificar que este patrón no haya sido ganado ya
-    if (sala.ganadores.some(g => g.patron === data.patron)) {
-      console.log(`Patrón ${data.patron} ya fue ganado por otro jugador`);
-      socket.emit('error', { mensaje: `El patrón ${data.patron} ya fue ganado por otro jugador` });
+    const ultimoNumeroCantado = sala.numerosCantados[sala.numerosCantados.length - 1];
+    const huboGanadorPrevioMismoPatron = sala.ganadores.some(g => g.patron === data.patron && g.numeroGanador !== ultimoNumeroCantado);
+    const jugadorYaGanoEstePatron = sala.ganadores.some(g => g.patron === data.patron && g.jugador.id === socket.id);
+    if (huboGanadorPrevioMismoPatron || jugadorYaGanoEstePatron) {
+      console.log(`Patrón ${data.patron} ya fue ganado antes o por este jugador`);
+      socket.emit('error', { mensaje: `El patrón ${data.patron} ya fue ganado anteriormente` });
       return;
     }
     
     // Verificar que el último número marcado sea el último cantado
-    const ultimoNumeroCantado = sala.numerosCantados[sala.numerosCantados.length - 1];
     
     // Obtener el último número que marcó el jugador
     const ultimoNumeroMarcado = jugador.numerosMarcados[jugador.numerosMarcados.length - 1];
