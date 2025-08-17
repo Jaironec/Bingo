@@ -1142,7 +1142,8 @@ let offline = {
     numerosCantados: [],
     intervalo: null,
     timeoutStart: null,
-    enPausa: false
+    enPausa: false,
+    patronesGanados: new Set()
 };
 
 function configurarOfflineListeners() {
@@ -1237,6 +1238,7 @@ function iniciarOffline() {
     offline.patrones = patrones;
     offline.velocidad = parseInt(document.getElementById('velocidadOffline').value || '3000');
     offline.numerosCantados = [];
+    offline.patronesGanados = new Set();
     document.getElementById('historialEventosOffline').innerHTML = '';
     const board = document.getElementById('offlineBingoBoard');
     board.innerHTML = '';
@@ -1355,23 +1357,26 @@ function verificarOfflineBingo() {
         }
         const tablaObj = generarTablasFijas(12345, idx+1)[idx];
         const resultado = evaluarPatronesOffline(tablaObj.numeros, offline.numerosCantados, offline.patrones);
-        if (resultado.ganado) {
+        const patron = mapDetalleAPatron(resultado.detalle);
+        if (resultado.ganado && patron && !offline.patronesGanados.has(patron)) {
+            offline.patronesGanados.add(patron);
             card.classList.add('winner');
             card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${resultado.detalle}</div>`;
             agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resultado.detalle}`);
             huboGanadores = true;
+        } else if (resultado.ganado && offline.patronesGanados.has(patron)) {
+            card.classList.add('loser');
+            card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Patrón ya ganado</span></div>`;
         } else {
             card.classList.add('loser');
             card.innerHTML = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Sin bingo</span></div>`;
         }
-        // tabla preview
         const mini = document.createElement('div');
         mini.className = 'tabla-bingo-mini';
         mini.style.marginTop = '8px';
         mini.innerHTML = tablaObj.numeros.map((fila, filaIndex) => 
             fila.map((celda, colIndex) => {
                 const esMarcado = offline.numerosCantados.includes(celda.numero) || celda.esLibre;
-                const patron = mapDetalleAPatron(resultado.detalle);
                 const esGanador = esGanadorEnPatron(patron, mapDetalleAResultado(resultado), filaIndex, colIndex, esMarcado);
                 const contenido = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
                 return `${contenido}</span>`;
