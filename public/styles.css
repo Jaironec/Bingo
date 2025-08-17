@@ -1613,3 +1613,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 #offlineTablaPreview .numero.ganador { background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%); color:#fff; border:none; }
 #offlineTablaPreview .numero.free { background: linear-gradient(135deg, #fefcbf 0%, #faf089 100%); color:#744210; border:1px solid #ecc94b; }
 .modal-header h3 { color:#2d3748; }
+
+/* Números Cantados en offline */
+.numeros-cantados.offline { margin-top: 10px; }
+.numeros-cantados.offline .numeros-grid { grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); gap: 6px; }
