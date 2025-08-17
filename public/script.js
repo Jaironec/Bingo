@@ -1141,6 +1141,7 @@ let offline = {
     velocidad: 3000,
     numerosCantados: [],
     intervalo: null,
+    timeoutStart: null,
     enPausa: false
 };
 
@@ -1254,6 +1255,7 @@ function iniciarOffline() {
 
 function iniciarCantoOffline() {
     if (offline.intervalo) clearInterval(offline.intervalo);
+    if (offline.timeoutStart) clearTimeout(offline.timeoutStart);
     const todos = Array.from({length:75}, (_,i)=>i+1);
     let disponibles = [...todos];
     function pick(){ return disponibles.splice(Math.floor(Math.random()*disponibles.length),1)[0]; }
@@ -1268,9 +1270,12 @@ function iniciarCantoOffline() {
         reproducirVozNumero(num, letra);
     }
     offline.enPausa = false;
-    // Ejecutar primer número inmediatamente como online
-    tick();
-    offline.intervalo = setInterval(tick, offline.velocidad);
+    // Pequeño retardo inicial antes del primer número
+    const initialDelay = Math.max(800, Math.min(2000, offline.velocidad));
+    offline.timeoutStart = setTimeout(() => {
+        tick();
+        offline.intervalo = setInterval(tick, offline.velocidad);
+    }, initialDelay);
 }
 
 function togglePausaOffline() {
@@ -1280,7 +1285,10 @@ function togglePausaOffline() {
     agregarEventoHistorialOffline(offline.enPausa? '⏸️ Pausa': '⏯️ Reanudado');
 }
 
-function pararOffline() { if (offline.intervalo) clearInterval(offline.intervalo); offline.intervalo = null; }
+function pararOffline() {
+    if (offline.intervalo) clearInterval(offline.intervalo); offline.intervalo = null;
+    if (offline.timeoutStart) clearTimeout(offline.timeoutStart); offline.timeoutStart = null;
+}
 
 function renderOfflineNumero(num) {
     const board = document.getElementById('offlineBingoBoard');
