@@ -1393,6 +1393,7 @@ function verificarOfflineBingo() {
             patronCard = resAllowed.patron;
             statusHtml = `<div class='header'><div class='code'>${codigo}</div><span class='status'>Ganador</span></div><div class='detail'>${resAllowed.detalle}</div>`;
             patronesGanadoresEstaVerificacion.add(resAllowed.patron);
+            agregarEventoHistorialOffline(`🏆 ${codigo} ganó ${resAllowed.detalle}`);
             huboGanadores = true;
         } else if (resFull.ganado && offline.patronesGanados.has(resFull.patron)) {
             card.classList.add('loser');
@@ -1423,7 +1424,25 @@ function verificarOfflineBingo() {
     cards.forEach(c => resDiv.appendChild(c));
     patronesGanadoresEstaVerificacion.forEach(p => offline.patronesGanados.add(p));
     if (patronesGanadoresEstaVerificacion.has('tablaLlena')) {
-        finalizarOfflineSiTablaLlena();
+        // Mantener el modal visible con el resumen de ganadores y una cuenta regresiva
+        const btnConfirmar = document.getElementById('btnConfirmarOfflineBingo');
+        if (btnConfirmar) btnConfirmar.disabled = true;
+        let restantes = 5;
+        const btnContinuar = document.getElementById('btnCancelarOfflineBingo');
+        if (btnContinuar) {
+            btnContinuar.textContent = `Volviendo en ${restantes}...`;
+            btnContinuar.disabled = true;
+            const timer = setInterval(() => {
+                restantes -= 1;
+                if (btnContinuar) btnContinuar.textContent = `Volviendo en ${restantes}...`;
+                if (restantes <= 0) {
+                    clearInterval(timer);
+                    finalizarOfflineSiTablaLlena();
+                }
+            }, 1000);
+        } else {
+            finalizarOfflineSiTablaLlena();
+        }
     }
     return huboGanadores;
 }
