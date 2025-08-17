@@ -1407,33 +1407,47 @@ function evaluarPatronesOffline(tabla, cantados, patronesHabilitados) {
     const isMarked = (celda) => !!(celda && (cantados.includes(celda.numero) || celda.esLibre===true));
     const ultimo = cantados[cantados.length-1];
     const incluyeUltimo = (fila,col)=>{ try { const c = tabla[fila][col]; return c.esLibre===true || c.numero===ultimo; } catch{return false;}}
+
+    // Evaluar en prioridad similar al online pero siempre exigiendo el último número en el patrón
     if (patronesHabilitados.includes('linea')) {
         for (let col=0; col<5; col++) {
             const completa = [0,1,2,3,4].every(f=>isMarked(tabla[f][col]));
-            if (completa && [0,1,2,3,4].some(f=>incluyeUltimo(f,col))) return {ganado:true, detalle:'Línea (vertical)'}
+            const contieneUlt = [0,1,2,3,4].some(f=>tabla[f][col].numero===ultimo);
+            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (vertical)'}
         }
         for (let fila=0; fila<5; fila++) {
             const completa = tabla[fila].every(c=>isMarked(c));
-            if (completa && tabla[fila].some(c=>c.esLibre===true || c.numero===ultimo)) return {ganado:true, detalle:'Línea (horizontal)'}
+            const contieneUlt = tabla[fila].some(c=>c.numero===ultimo);
+            if (completa && contieneUlt) return {ganado:true, detalle:'Línea (horizontal)'}
         }
     }
     if (patronesHabilitados.includes('cuatroEsquinas')) {
         const corners = [tabla[0][0],tabla[0][4],tabla[4][0],tabla[4][4]];
-        if (corners.every(isMarked) && corners.some(c=>c.numero===ultimo)) return {ganado:true, detalle:'Cuatro Esquinas'}
+        const completas = corners.every(isMarked);
+        const ultimoEnCorners = corners.some(c=>c.numero===ultimo);
+        if (completas && ultimoEnCorners) return {ganado:true, detalle:'Cuatro Esquinas'}
     }
     if (patronesHabilitados.includes('loco')) {
+        // EXACTAMENTE 5 marcados y que uno de ellos sea el último
         const marcados = new Set(cantados);
-        if (marcados.size>=5 && marcados.has(ultimo)) return {ganado:true, detalle:'LOCO (5 números)'}
+        const countMarcadosEnTabla = tabla.flat().filter(c=>marcados.has(c.numero) || c.esLibre===true).length;
+        if (countMarcadosEnTabla >= 5 && marcados.has(ultimo)) {
+            // Validar que al menos 5 (no necesariamente únicos por columnas) estén marcados y último esté entre ellos
+            return {ganado:true, detalle:'LOCO (5 números)'}
+        }
     }
     if (patronesHabilitados.includes('machetaso')) {
-        const dP = [0,1,2,3,4].every(i=>isMarked(tabla[i][i])) && [0,1,2,3,4].some(i=>incluyeUltimo(i,i));
-        const dS = [0,1,2,3,4].every(i=>isMarked(tabla[i][4-i])) && [0,1,2,3,4].some(i=>incluyeUltimo(i,4-i));
-        if (dP) return {ganado:true, detalle:'Machetaso (diagonal principal)'};
-        if (dS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)'};
+        const dPCompleta = [0,1,2,3,4].every(i=>isMarked(tabla[i][i]));
+        const dSCompleta = [0,1,2,3,4].every(i=>isMarked(tabla[i][4-i]));
+        const ultimoEnP = [0,1,2,3,4].some(i=>tabla[i][i].numero===ultimo);
+        const ultimoEnS = [0,1,2,3,4].some(i=>tabla[i][4-i].numero===ultimo);
+        if (dPCompleta && ultimoEnP) return {ganado:true, detalle:'Machetaso (diagonal principal)'};
+        if (dSCompleta && ultimoEnS) return {ganado:true, detalle:'Machetaso (diagonal secundaria)'};
     }
     if (patronesHabilitados.includes('tablaLlena')) {
         const completa = tabla.every(fila=>fila.every(isMarked));
-        if (completa && tabla.some(f=>f.some(c=>c.esLibre===true||c.numero===ultimo))) return {ganado:true, detalle:'Tabla Llena'}
+        const contieneUlt = tabla.some(f=>f.some(c=>c.numero===ultimo));
+        if (completa && contieneUlt) return {ganado:true, detalle:'Tabla Llena'}
     }
     return {ganado:false}
 }
