@@ -11,8 +11,15 @@ class SoundManager {
         // Crear sonidos usando Web Audio API
         this.createSounds();
         
-        // Intentar cargar sonidos desde archivos (si existen)
-        this.loadSoundFiles();
+        // Intentar cargar sonidos desde archivos (si existen y está habilitado)
+        try {
+            const cfg = (window && window.BingoConfig && window.BingoConfig.sounds) ? window.BingoConfig.sounds : {};
+            if (cfg.useFileSounds) {
+                this.loadSoundFiles();
+            }
+        } catch (_) {
+            // Ignorar si no hay configuración
+        }
     }
 
     createSounds() {
@@ -103,14 +110,18 @@ class SoundManager {
     }
 
     loadSoundFiles() {
+        // Base configurable
+        const cfg = (window && window.BingoConfig && window.BingoConfig.sounds) ? window.BingoConfig.sounds : {};
+        const base = (cfg.basePath || '/sounds/').replace(/\/+$/, '/')
+        
         // Intentar cargar archivos de sonido si existen
         const soundFiles = {
-            'numberCalled': 'sounds/number.mp3',
-            'bingo': 'sounds/bingo.mp3',
-            'mark': 'sounds/mark.mp3',
-            'error': 'sounds/error.mp3',
-            'success': 'sounds/success.mp3',
-            'notification': 'sounds/notification.mp3'
+            'numberCalled': base + 'number.mp3',
+            'bingo': base + 'bingo.mp3',
+            'mark': base + 'mark.mp3',
+            'error': base + 'error.mp3',
+            'success': base + 'success.mp3',
+            'notification': base + 'notification.mp3'
         };
 
         Object.entries(soundFiles).forEach(([key, path]) => {

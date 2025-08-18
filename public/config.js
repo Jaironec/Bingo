@@ -22,6 +22,8 @@ window.BingoConfig = {
     sounds: {
         enabled: true,
         volume: 0.5,
+        useFileSounds: false,
+        basePath: '/sounds/',
         effects: {
             numberCalled: true,
             mark: true,
