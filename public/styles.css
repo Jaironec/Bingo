@@ -1468,8 +1468,9 @@ body {
   box-shadow: var(--shadow-2xl);
   max-width: 500px;
   width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
   transform: scale(0.9);
   transition: transform var(--transition-normal);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1489,12 +1490,17 @@ body {
   right: 0;
   height: 4px;
   background: var(--bg-primary);
+  z-index: 1;
 }
 
 .modal-header {
   padding: var(--space-xl) var(--space-xl) var(--space-lg);
   border-bottom: 1px solid var(--gray-200);
   text-align: center;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  position: relative;
+  z-index: 2;
 }
 
 .modal-header h3 {
@@ -1511,104 +1517,225 @@ body {
 
 .modal-header h3 i {
   color: var(--primary-500);
+  font-size: var(--text-lg);
 }
 
 .modal-body {
   padding: var(--space-xl);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
   padding: var(--space-lg) var(--space-xl) var(--space-xl);
   display: flex;
   gap: var(--space-md);
-  justify-content: flex-end;
+  justify-content: center;
   border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .modal-tutorial {
-  max-width: 600px;
+  max-width: 650px;
+}
+
+.modal-tutorial .modal-content {
+  max-height: 90vh;
+}
+
+.modal-tutorial .modal-body {
+  max-height: calc(90vh - 180px);
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl);
 }
 
 .modal-nombre {
   max-width: 400px;
 }
 
+/* ========================================
+   TUTORIAL MEJORADO
+   ======================================== */
 .tutorial-section {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  text-align: left;
+}
+
+.tutorial-section:last-of-type {
+  margin-bottom: var(--space-lg);
 }
 
 .tutorial-section h4 {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font-size: var(--text-xl);
+  font-weight: 700;
   color: var(--gray-800);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--primary-100);
+}
+
+.tutorial-section h4::before {
+  content: '📖';
+  font-size: var(--text-lg);
+}
+
+.tutorial-section:last-of-type h4::before {
+  content: '🎯';
 }
 
 .tutorial-steps {
   list-style: none;
   counter-reset: step-counter;
+  margin-bottom: var(--space-lg);
 }
 
 .tutorial-steps li {
   counter-increment: step-counter;
-  margin-bottom: var(--space-md);
-  padding-left: var(--space-2xl);
+  margin-bottom: var(--space-lg);
+  padding-left: var(--space-3xl);
   position: relative;
-  line-height: 1.6;
+  line-height: 1.7;
+  font-size: var(--text-base);
+  color: var(--gray-700);
 }
 
 .tutorial-steps li::before {
   content: counter(step-counter);
   position: absolute;
   left: 0;
-  top: 0;
-  width: 24px;
-  height: 24px;
-  background: var(--primary-500);
+  top: 2px;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
   color: white;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--text-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .tutorial-modos {
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .tutorial-modos li {
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
   line-height: 1.6;
+  padding: var(--space-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--primary-200);
+}
+
+.tutorial-modos li:last-child {
+  margin-bottom: 0;
 }
 
 .modo-icono {
-  width: 32px;
-  height: 32px;
-  background: var(--primary-100);
-  color: var(--primary-500);
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
+  color: var(--primary-600);
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: var(--text-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.tutorial-modos li strong {
+  color: var(--gray-800);
+  font-weight: 700;
 }
 
 .no-mostrar {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--gray-200);
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: var(--text-sm);
-  color: var(--gray-600);
+  color: var(--gray-700);
+  transition: all var(--transition-normal);
+}
+
+.no-mostrar:hover {
+  background: var(--primary-100);
+}
+
+.no-mostrar input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* ========================================
+   SCROLL PERSONALIZADO PARA MODALES
+   ======================================== */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: var(--radius-full);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: var(--primary-300);
+  border-radius: var(--radius-full);
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-400);
+}
+
+/* Asegurar que el modal sea completamente visible */
+.modal {
+  padding: var(--space-md);
+}
+
+.modal-tutorial .modal-content {
+  min-height: 400px;
+  max-height: 90vh;
+}
+
+/* Indicador de scroll */
+.modal-body {
+  position: relative;
+}
+
+.modal-body::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(transparent, var(--bg-card));
+  pointer-events: none;
 }
 
 .input-nombre-container {
@@ -1746,14 +1873,57 @@ body {
   .modal-content {
     width: 95%;
     margin: var(--space-md);
+    max-height: 95vh;
+  }
+
+  .modal-tutorial .modal-content {
+    max-height: 95vh;
+  }
+
+  .modal-tutorial .modal-body {
+    max-height: calc(95vh - 160px);
+    padding: var(--space-md);
+  }
+
+  .modal-header {
+    padding: var(--space-lg);
   }
 
   .modal-footer {
     flex-direction: column-reverse;
+    padding: var(--space-md);
   }
 
   .modal-footer .btn {
     width: 100%;
+  }
+
+  .tutorial-steps li {
+    padding-left: var(--space-2xl);
+    margin-bottom: var(--space-md);
+    font-size: var(--text-sm);
+  }
+
+  .tutorial-steps li::before {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .tutorial-modos li {
+    padding: var(--space-sm);
+    margin-bottom: var(--space-md);
+    font-size: var(--text-sm);
+  }
+
+  .modo-icono {
+    width: 30px;
+    height: 30px;
+    font-size: var(--text-sm);
+  }
+
+  .tutorial-section h4 {
+    font-size: var(--text-lg);
   }
 
   .grid-tablas {
