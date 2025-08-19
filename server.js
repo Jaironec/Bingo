@@ -271,17 +271,43 @@ io.on('connection', (socket) => {
     io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: anfitrion?.nombre || 'sistema' });
     if (sala._tiebreak && sala._tiebreak.activo) {
       // agregar participante si no está
-      const existe = sala._tiebreak.participantes.some(p => p.id === socket.id);
-      if (!existe) sala._tiebreak.participantes.push({ id: socket.id });
+      const ya = new Set(sala._tiebreak.participantes.map(p => p.id));
+      if (!ya.has(socket.id)) sala._tiebreak.participantes.push({ id: socket.id });
+      // incluir bots elegibles automáticamente en esta ventana
+      (sala.jugadores || []).forEach(j => {
+        if (!j.esBot || !j.tablaSeleccionada) return;
+        if (ya.has(j.id)) return;
+        // Validar si el bot gana con el mismo último número en cualquier patrón permitido
+        const numerosValidos = (j.numerosMarcados || []).filter(n => 
+          j.tablaSeleccionada.numeros.some(f => f.some(c => c.numero === n))
+        );
+        const ultimo = sala.numerosCantados[sala.numerosCantados.length - 1];
+        const patrones = sala.configuracion?.patrones || [];
+        const gana = patrones.some(pat => verificarBingo(j.tablaSeleccionada.numeros, numerosValidos, pat, ultimo).ganado);
+        if (gana) sala._tiebreak.participantes.push({ id: j.id });
+      });
       return;
     }
 
     // abrir ventana de 3s para recolectar clics simultáneos
+    // construir participantes iniciales (jugador + bots elegibles al momento de abrir la ventana)
+    const participantesIniciales = [{ id: socket.id }];
+    (sala.jugadores || []).forEach(j => {
+      if (!j.esBot || !j.tablaSeleccionada) return;
+      const numerosValidos = (j.numerosMarcados || []).filter(n => 
+        j.tablaSeleccionada.numeros.some(f => f.some(c => c.numero === n))
+      );
+      const ultimo = ultimoNumeroCantado;
+      const patrones = sala.configuracion?.patrones || [];
+      const gana = patrones.some(pat => verificarBingo(j.tablaSeleccionada.numeros, numerosValidos, pat, ultimo).ganado);
+      if (gana) participantesIniciales.push({ id: j.id });
+    });
+
     sala._tiebreak = {
       activo: true,
       inicio: Date.now(),
       numero: ultimoNumeroCantado,
-      participantes: [{ id: socket.id }],
+      participantes: participantesIniciales,
       timeout: setTimeout(() => resolverTiebreak(sala.id), 3000)
     };
     io.to(data.salaId).emit('tiebreakIniciado', { ventanaMs: 3000, numero: ultimoNumeroCantado });
@@ -426,10 +452,13 @@ io.on('connection', (socket) => {
     // Enviar el evento de juego iniciado a todos
     io.to(data.salaId).emit('juegoIniciado', { sala });
     
-    // Enviar la tabla seleccionada a cada jugador individualmente
+    // Enviar la tabla seleccionada a cada jugador real individualmente (no bots)
     sala.jugadores.forEach(jugador => {
       if (jugador.tablaSeleccionada) {
-        io.to(jugador.id).emit('tablaSeleccionada', { tabla: jugador.tablaSeleccionada });
+        const targetSocket = io.sockets?.sockets?.get?.(jugador.id);
+        if (targetSocket) {
+          io.to(jugador.id).emit('tablaSeleccionada', { tabla: jugador.tablaSeleccionada });
+        }
       }
     });
     
@@ -604,6 +633,34 @@ io.on('connection', (socket) => {
     io.to(data.salaId).emit('salaConfigurada', { configuracion: sala.configuracion });
   });
 
+  // Añadir bots (solo anfitrión). data: { salaId, cantidad }
+  socket.on('agregarBots', (data) => {
+    const sala = salas.get(data.salaId);
+    if (!sala || sala.anfitrion !== socket.id) return;
+    const cantidad = Math.max(1, Math.min(20 - sala.jugadores.length, parseInt(data.cantidad || 1, 10)));
+    for (let i=0;i<cantidad;i++) {
+      const botId = `bot-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+      const botNombre = `Bot ${sala.jugadores.length + 1}`;
+      const bot = {
+        id: botId,
+        nombre: botNombre,
+        tablaSeleccionada: null,
+        numerosMarcados: [],
+        esAnfitrion: false,
+        esBot: true
+      };
+      sala.jugadores.push(bot);
+      // Seleccionar una tabla libre para el bot
+      const libre = sala.tablas.find(t => t.disponible);
+      if (libre) {
+        libre.disponible = false;
+        bot.tablaSeleccionada = libre;
+        io.to(data.salaId).emit('jugadorSeleccionoTabla', { jugadorId: bot.id, tabla: libre });
+      }
+      io.to(data.salaId).emit('jugadorUnido', bot);
+    }
+  });
+
   // Pausar juego (solo anfitrión)
   socket.on('pausarJuego', (data) => {
     const sala = salas.get(data.salaId);
@@ -708,6 +765,17 @@ function iniciarCantoAutomatico(salaId) {
       numeroConLetra: `${letraBingo}${numeroAleatorio}`,
       numerosCantados: sala.numerosCantados 
     });
+
+    // Comportamiento básico de bots: marcar el número si lo tienen
+    try {
+      (sala.jugadores || []).forEach(j => {
+        if (!j?.esBot || !j?.tablaSeleccionada) return;
+        const loTiene = j.tablaSeleccionada.numeros.some(f => f.some(c => c.numero === numeroAleatorio));
+        if (loTiene && !j.numerosMarcados.includes(numeroAleatorio)) {
+          j.numerosMarcados.push(numeroAleatorio);
+        }
+      });
+    } catch (_) {}
     
   }, sala.configuracion.velocidadCanto);
 }

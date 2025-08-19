@@ -121,6 +121,14 @@ function configurarEventListeners() {
     // Controles del anfitrión
     document.getElementById('btnIniciarJuegoRapido').addEventListener('click', iniciarJuegoRapido);
     document.getElementById('velocidadCantoRapido').addEventListener('input', actualizarVelocidadRapida);
+    // Agregar bots
+    const btnBots = document.getElementById('btnAgregarBots');
+    if (btnBots) btnBots.addEventListener('click', () => {
+        const num = parseInt(document.getElementById('inputNumBots').value || '1', 10);
+        if (!salaActual || !jugadorActual?.esAnfitrion) return;
+        socket.emit('agregarBots', { salaId: salaActual.id, cantidad: num });
+        mostrarNotificacion(`Agregando ${num} bot(s)...`, 'info');
+    });
     
     // Botones del juego
     document.getElementById('btnPausar').addEventListener('click', pausarJuego);
