@@ -255,8 +255,26 @@
                 </div>
                 
                 <div class="tablas-container">
-                    <h3>Tablas Disponibles</h3>
+                    <div class="tablas-header">
+                        <h3><i class="fas fa-th-large"></i> Tablas de Bingo Disponibles</h3>
+                        <div class="tablas-info">
+                            <span class="info-item">
+                                <i class="fas fa-check-circle text-success"></i>
+                                <span id="tablasDisponibles">0</span> Disponibles
+                            </span>
+                            <span class="info-item">
+                                <i class="fas fa-users text-primary"></i>
+                                <span id="tablasOcupadas">0</span> Ocupadas
+                            </span>
+                        </div>
+                    </div>
                     <div id="gridTablas" class="grid-tablas"></div>
+                    <div class="tablas-footer">
+                        <p class="help-text">
+                            <i class="fas fa-lightbulb"></i>
+                            Haz clic en una tabla para seleccionarla. Cada tabla tiene números únicos distribuidos según las reglas tradicionales del bingo.
+                        </p>
+                    </div>
                 </div>
                 
                 <!-- Botón para anfitrión iniciar juego -->
@@ -314,8 +332,37 @@
                 <div class="juego-content">
                     <div class="panel-izquierdo">
                         <div class="tabla-bingo-container">
-                            <h3>Tu Tabla de Bingo</h3>
-                            <div id="tablaBingo" class="tabla-bingo"></div>
+                            <div class="tabla-header-juego">
+                                <div class="tabla-title">
+                                    <h3><i class="fas fa-id-card"></i> Tu Tabla de Bingo</h3>
+                                    <div class="tabla-info-badge">
+                                        <span class="tabla-numero-badge" id="numeroTablaBadge">Tabla #-</span>
+                                        <div class="progress-container">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                                            </div>
+                                            <span class="progress-text" id="progressText">0/24</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tabla-actions">
+                                    <button class="btn-icon btn-reset" id="btnResetMarcas" title="Reiniciar marcas">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    <button class="btn-icon btn-help" id="btnAyudaTabla" title="Ayuda">
+                                        <i class="fas fa-question"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bingo-card-wrapper">
+                                <div id="tablaBingo" class="tabla-bingo-principal"></div>
+                                <div class="tabla-overlay" id="tablaOverlay">
+                                    <div class="overlay-content">
+                                        <i class="fas fa-hand-pointer"></i>
+                                        <p>Selecciona una tabla para comenzar</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="info-depuracion">
