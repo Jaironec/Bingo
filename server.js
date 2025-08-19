@@ -242,6 +242,8 @@ function resolverTiebreak(salaId) {
     sala.juegoActivo = false;
     io.to(salaId).emit('juegoTerminado', { mensaje: '¡Tabla Llena! Fin del juego' });
   } else {
+    // Marcar este número como resuelto para evitar nuevas ventanas para este mismo número
+    sala._tiebreakResueltoParaNumero = numero;
     // Reanudar después de 5s
     setTimeout(() => {
       if (!sala) return;
@@ -257,6 +259,12 @@ io.on('connection', (socket) => {
   socket.on('declararBingoUnico', (data) => {
     const sala = salas.get(data.salaId);
     if (!sala) return;
+    const ultimoNumeroCantado = sala.numerosCantados[sala.numerosCantados.length - 1];
+    // Evitar reclamos tardíos una vez resuelta la ventana para este número
+    if (sala._tiebreakResueltoParaNumero && Number(sala._tiebreakResueltoParaNumero) === Number(ultimoNumeroCantado)) {
+      socket.emit('error', { mensaje: 'La ventana de Bingo para este número ya terminó' });
+      return;
+    }
     // Pausar juego mientras se espera a otros posibles ganadores
     sala.juegoActivo = false;
     const anfitrion = sala.jugadores.find(j => j.id === sala.anfitrion);
@@ -268,7 +276,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const ultimoNumeroCantado = sala.numerosCantados[sala.numerosCantados.length - 1];
     // abrir ventana de 3s para recolectar clics simultáneos
     sala._tiebreak = {
       activo: true,
@@ -466,7 +473,7 @@ io.on('connection', (socket) => {
     socket.emit('numeroMarcado', { numero: data.numero });
   });
   
-  // Declarar bingo
+  // Declarar bingo (legacy por patrón; UI usa botón único)
   socket.on('declararBingo', (data) => {
     const sala = salas.get(data.salaId);
     if (!sala) return;
@@ -491,17 +498,6 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Verificar que el último número marcado sea el último cantado
-    
-    // Obtener el último número que marcó el jugador
-    const ultimoNumeroMarcado = jugador.numerosMarcados[jugador.numerosMarcados.length - 1];
-    
-    console.log(`Validación de bingo:`);
-    console.log(`- Último número cantado: ${ultimoNumeroCantado}`);
-    console.log(`- Último número marcado por ${jugador.nombre}: ${ultimoNumeroMarcado}`);
-    console.log(`- Números cantados:`, sala.numerosCantados);
-    console.log(`- Números marcados por ${jugador.nombre}:`, jugador.numerosMarcados);
-    
     // Reglas: debes haber marcado el último número cantado y el patrón debe incluirlo
     if (!jugador.numerosMarcados.includes(ultimoNumeroCantado)) {
       console.log(`❌ Bingo inválido: no has marcado el último número cantado (${ultimoNumeroCantado})`);
@@ -518,23 +514,12 @@ io.on('connection', (socket) => {
       );
     });
     
-    console.log(`Validando bingo para ${jugador.nombre}:`);
-    console.log(`- Patrón: ${data.patron}`);
-    console.log(`- Números marcados originales:`, jugador.numerosMarcados);
-    console.log(`- Números válidos en tabla:`, numerosValidos);
-    console.log(`- Tabla del jugador:`, jugador.tablaSeleccionada.numeros);
-    console.log(`- Estado del juego ANTES:`, sala.juegoActivo);
-    console.log(`- Último número cantado:`, ultimoNumeroCantado);
-    console.log(`- Número ganador declarado:`, data.numeroGanador);
-    
     const resultado = verificarBingo(
       jugador.tablaSeleccionada.numeros,
-      numerosValidos, // Usar solo números válidos
+      numerosValidos,
       data.patron,
       ultimoNumeroCantado
     );
-    
-    console.log(`- Resultado de validación:`, resultado);
     
     if (resultado.ganado) {
       // Ganador principal (patrón declarado)
@@ -544,7 +529,7 @@ io.on('connection', (socket) => {
           id: jugador.id,
           nombre: jugador.nombre,
           tablaSeleccionada: jugador.tablaSeleccionada,
-          numerosMarcados: numerosValidos // Usar números válidos
+          numerosMarcados: numerosValidos
         },
         patron: data.patron,
         resultado: resultado,
@@ -586,7 +571,6 @@ io.on('connection', (socket) => {
       let huboTablaLlena = false;
       for (const w of winnersToEmit) {
         io.to(data.salaId).emit('bingoDeclarado', w);
-        console.log(`¡BINGO! ${w.jugador.nombre} ganó con ${w.resultado.tipo}`);
         if (w.patron === 'tablaLlena') huboTablaLlena = true;
       }
 
@@ -606,10 +590,7 @@ io.on('connection', (socket) => {
           }
         }, 5000);
       }
-      
-      console.log(`- Estado del juego DESPUÉS:`, sala.juegoActivo);
     } else {
-      console.log(`Bingo inválido para ${jugador.nombre} con patrón ${data.patron}`);
       socket.emit('error', { mensaje: 'Bingo inválido' });
     }
   });
@@ -643,8 +624,6 @@ io.on('connection', (socket) => {
   
   // Desconexión
   socket.on('disconnect', () => {
-    console.log('Usuario desconectado:', socket.id);
-    
     // Remover jugador de todas las salas
     salas.forEach((sala, salaId) => {
       const jugadorIndex = sala.jugadores.findIndex(j => j.id === socket.id);
