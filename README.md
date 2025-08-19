@@ -13,7 +13,7 @@ Un juego de bingo multijugador en tiempo real con salas, tablas únicas y múlti
   - Línea (horizontal, vertical o diagonal)
   - Tabla llena
   - Cuatro esquinas
-  - Patrón loco (X)
+  - LOCO (5 números)
 - **Configuración flexible**: El anfitrión puede configurar patrones y velocidad
 - **Verificación automática**: El sistema verifica automáticamente los bingos declarados
 - **Interfaz moderna**: Diseño responsive y atractivo
@@ -96,8 +96,8 @@ Un juego de bingo multijugador en tiempo real con salas, tablas únicas y múlti
 ### Cuatro Esquinas
 - Los 4 números de las esquinas de la tabla
 
-### Patrón Loco (X)
-- Forma de X en la tabla (esquinas + centro + puntos intermedios)
+### LOCO (5 números)
+- Marca exactamente 5 números cualesquiera y debe incluir el último número cantado
 
 ## 🛠️ Tecnologías utilizadas
 

@@ -48,8 +48,8 @@ Abre `http://localhost:3000` en varias pestañas para simular múltiples jugador
 ### Cuatro Esquinas
 - Los 4 números de las esquinas
 
-### Patrón Loco (X)
-- Forma de X en la tabla
+### LOCO (5 números)
+- Marca exactamente 5 números cualesquiera
 
 ## 🔧 Características técnicas
 
@@ -159,7 +159,7 @@ Edita `public/sounds.js` para personalizar los efectos de sonido.
 
 ## 🔒 Seguridad
 
-- Las salas se identifican con UUIDs únicos
+- Las salas se identifican con códigos de 4 dígitos
 - No se almacenan datos sensibles
 - Las conexiones se validan en el servidor
 - Prevención de bingos falsos
