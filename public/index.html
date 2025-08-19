@@ -227,20 +227,8 @@
                         <div class="botones-bingo">
                             <h3>Declarar Bingo</h3>
                             <div class="botones-patron">
-                                <button class="btn btn-bingo" data-patron="linea">
-                                    <i class="fas fa-minus"></i> Línea
-                                </button>
-                                <button class="btn btn-bingo" data-patron="tablaLlena">
-                                    <i class="fas fa-square"></i> Tabla Llena
-                                </button>
-                                <button class="btn btn-bingo" data-patron="cuatroEsquinas">
-                                    <i class="fas fa-border-all"></i> Cuatro Esquinas
-                                </button>
-                                <button class="btn btn-bingo" data-patron="loco">
-                                    <i class="fas fa-times"></i> LOCO
-                                </button>
-                                <button class="btn btn-bingo" data-patron="machetaso">
-                                    <i class="fas fa-slash"></i> Machetaso
+                                <button id="btnBingo" class="btn btn-bingo">
+                                    <i class="fas fa-trophy"></i> ¡BINGO!
                                 </button>
                             </div>
                         </div>
@@ -273,6 +261,22 @@
                 </div>
                 <div class="modal-footer">
                     <button id="btnCerrarModal" class="btn btn-primary">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de desempate (dado) -->
+        <div id="modalTiebreak" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-dice"></i> Desempate por dado</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="tiebreakMensaje">Se detectó un empate. Tirando el dado...</p>
+                    <div id="tiebreakLista" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCerrarTiebreak" class="btn btn-primary">Cerrar</button>
                 </div>
             </div>
         </div>

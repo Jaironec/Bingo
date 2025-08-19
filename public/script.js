@@ -94,6 +94,8 @@ function inicializarSocket() {
     socket.on('numeroCantado', manejarNumeroCantado);
     socket.on('numeroMarcado', manejarNumeroMarcado);
     socket.on('bingoDeclarado', manejarBingoDeclarado);
+    socket.on('tiebreakIniciado', manejarTiebreakIniciado);
+    socket.on('tiebreakResultado', manejarTiebreakResultado);
     socket.on('jugadorDesconectado', manejarJugadorDesconectado);
     socket.on('salaConfigurada', manejarSalaConfigurada);
     socket.on('juegoTerminado', manejarJuegoTerminado);
@@ -130,10 +132,9 @@ function configurarEventListeners() {
     if (btnCancelarSalir) btnCancelarSalir.addEventListener('click', cerrarModalSalir);
     if (btnConfirmarSalir) btnConfirmarSalir.addEventListener('click', confirmarSalir);
     
-    // Botones de bingo
-    document.querySelectorAll('.btn-bingo').forEach(btn => {
-        btn.addEventListener('click', declararBingo);
-    });
+    // Botón único de bingo
+    const btnBingo = document.getElementById('btnBingo');
+    if (btnBingo) btnBingo.addEventListener('click', declararBingoUnico);
     
     // Modal de declaración de bingo
     document.getElementById('btnCerrarModal').addEventListener('click', cerrarModal);
@@ -236,33 +237,18 @@ function marcarNumero(numero) {
     });
 }
 
-function declararBingo(e) {
+function declararBingoUnico() {
     const ahora = Date.now();
-    const patron = e.target.closest('.btn-bingo').dataset.patron;
-    const numeroActual = document.getElementById('numeroActual').textContent;
-    
-    // Extraer solo el número del texto (puede ser "B15" o solo "15")
-    let numeroGanador = numeroActual;
-    if (numeroActual.match(/^[BINGO]\d+$/)) {
-        numeroGanador = numeroActual.substring(1); // Quitar la letra
-    }
-
-    // Anti-spam: permitir múltiples declaraciones con el MISMO número (ej: B11) para patrones distintos en una ventana corta
-    const mismoNumeroQueAntes = ultimoBingoClickNumero === numeroGanador;
-    const ventanaActiva = (ahora - ultimoBingoClickMs) < BINGO_COOLDOWN_MS;
-    if (!mismoNumeroQueAntes && ventanaActiva) {
-        mostrarNotificacion('Espera un momento antes de declarar de nuevo', 'info');
+    const numeroActualTxt = document.getElementById('numeroActual').textContent;
+    let numeroGanador = numeroActualTxt;
+    if (numeroActualTxt.match(/^[BINGO]\d+$/)) numeroGanador = numeroActualTxt.substring(1);
+    if ((ahora - ultimoBingoClickMs) < BINGO_COOLDOWN_MS && ultimoBingoClickNumero === numeroGanador) {
+        mostrarNotificacion('Espera un momento…', 'info');
         return;
     }
     ultimoBingoClickMs = ahora;
     ultimoBingoClickNumero = numeroGanador;
-    ultimoBingoClickPatron = patron;
-    
-    socket.emit('declararBingo', {
-        salaId: salaActual.id,
-        patron: patron,
-        numeroGanador: numeroGanador
-    });
+    socket.emit('declararBingoUnico', { salaId: salaActual.id, numeroGanador: numeroGanador });
 }
 
 // Manejadores de eventos de Socket.IO
@@ -385,10 +371,7 @@ function manejarJuegoIniciado(data) {
         tablaSeleccionada = jugadorEnSala.tablaSeleccionada;
     }
     
-    // Actualizar los botones de bingo según la configuración
-    if (salaActual.configuracion && salaActual.configuracion.patrones) {
-        actualizarBotonesBingo(salaActual.configuracion.patrones);
-    }
+    // Ocultar/ignorar configuración por patrón en UI (botón único)
     
     mostrarPantalla('pantallaJuego');
     inicializarPantallaJuego();
@@ -448,6 +431,31 @@ function manejarBingoDeclarado(ganador) {
     } else {
         iniciarCuentaRegresivaFinal(5);
     }
+}
+
+function manejarTiebreakIniciado(data) {
+    mostrarNotificacion('Posible empate. Esperando a otros jugadores…', 'info');
+}
+
+function manejarTiebreakResultado(payload) {
+    const modal = document.getElementById('modalTiebreak');
+    const lista = document.getElementById('tiebreakLista');
+    const msg = document.getElementById('tiebreakMensaje');
+    if (!modal || !lista || !msg) return;
+    lista.innerHTML = '';
+    msg.textContent = `Desempate por ${obtenerNombrePatron(payload.patron)} (número ${payload.numero}).`;
+    payload.tiradas.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'dice-card';
+        card.innerHTML = `<div class='name'>${t.nombre}</div><div class='dice'>${t.roll}</div>`;
+        if (payload.ganador && payload.ganador.jugadorId === t.jugadorId) {
+            card.querySelector('.dice').classList.add('winner');
+        }
+        lista.appendChild(card);
+    });
+    modal.classList.remove('oculta');
+    const btn = document.getElementById('btnCerrarTiebreak');
+    if (btn) btn.onclick = () => modal.classList.add('oculta');
 }
 
 function iniciarCuentaRegresivaFinal(segundos) {
@@ -539,19 +547,7 @@ function manejarSalaConfigurada(data) {
     mostrarNotificacion('Configuración actualizada', 'exito');
 }
 
-function actualizarBotonesBingo(patrones) {
-    const botonesBingo = document.querySelectorAll('.btn-bingo');
-    botonesBingo.forEach(btn => {
-        const patron = btn.dataset.patron;
-        if (patrones.includes(patron)) {
-            btn.style.display = 'inline-block';
-            btn.disabled = false;
-        } else {
-            btn.style.display = 'none';
-            btn.disabled = true;
-        }
-    });
-}
+function actualizarBotonesBingo() { /* sin uso en modo botón único */ }
 
 function manejarJuegoTerminado(data) {
     agregarEventoHistorial('⏹️ El juego terminó');
