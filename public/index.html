@@ -3,85 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Bingo Online - Juega con amigos en tiempo real</title>
-    <meta name="description" content="Juego de bingo multijugador en tiempo real. Crea salas, invita amigos y diviértete con múltiples patrones de juego.">
+    <title>Bingo Online</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div id="app">
         <!-- Pantalla de inicio -->
         <div id="pantallaInicio" class="pantalla">
-            <!-- Fondo animado -->
-            <div class="animated-bg">
-                <div class="bg-shapes">
-                    <div class="shape shape-1"></div>
-                    <div class="shape shape-2"></div>
-                    <div class="shape shape-3"></div>
-                    <div class="shape shape-4"></div>
-                </div>
-            </div>
-            
             <div class="container">
-                <!-- Hero Section Hermoso -->
-                <div class="hero-section">
-                    <div class="hero-content">
-                        <div class="logo-container">
-                            <div class="logo-icon">
-                                <i class="fas fa-dice"></i>
-                            </div>
-                            <h1 class="hero-title">
-                                <span class="title-main">Bingo</span>
-                                <span class="title-sub">Multijugador</span>
-                            </h1>
-                        </div>
-                        <p class="hero-description">
-                            Conecta con amigos y familia en emocionantes partidas de bingo en tiempo real
-                        </p>
-                        <div class="hero-stats">
-                            <div class="stat">
-                                <span class="stat-number">20</span>
-                                <span class="stat-label">Jugadores máx</span>
-                            </div>
-                            <div class="stat">
-                                <span class="stat-number">5</span>
-                                <span class="stat-label">Patrones diferentes</span>
-                            </div>
-                            <div class="stat">
-                                <span class="stat-number">∞</span>
-                                <span class="stat-label">Diversión garantizada</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="header">
+                    <h1><i class="fas fa-dice"></i> Bingo Multijugador</h1>
+                    <p>¡Diviértete jugando bingo con amigos en tiempo real!</p>
                 </div>
                 
-                <!-- Opciones con estructura original pero estilos modernos -->
                 <div class="opciones">
                     <div class="opcion">
-                        <div class="opcion-icon">
-                            <i class="fas fa-plus-circle"></i>
-                        </div>
-                        <h3>Crear Sala</h3>
+                        <h3><i class="fas fa-plus-circle"></i> Crear Sala</h3>
                         <p>Crea una nueva sala y comparte el código con tus amigos</p>
-                        <div class="opcion-features">
-                            <span class="feature"><i class="fas fa-users"></i> Hasta 20 jugadores</span>
-                            <span class="feature"><i class="fas fa-cog"></i> Configuración personalizada</span>
-                        </div>
                         <button id="btnCrearSala" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Crear Nueva Sala
                         </button>
                     </div>
                     
                     <div class="opcion">
-                        <div class="opcion-icon secondary">
-                            <i class="fas fa-sign-in-alt"></i>
-                        </div>
-                        <h3>Unirse a Sala</h3>
+                        <h3><i class="fas fa-sign-in-alt"></i> Unirse a Sala</h3>
                         <p>Únete a una sala existente con el código de invitación</p>
                         <div class="input-group">
                             <input type="text" id="codigoSala" placeholder="Código de la sala" maxlength="36">
@@ -91,16 +40,9 @@
                         </div>
                     </div>
 
-                    <div class="opcion presencial-option">
-                        <div class="opcion-icon tertiary">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h3>Juego Presencial</h3>
+                    <div class="opcion">
+                        <h3><i class="fas fa-users"></i> Juego Presencial</h3>
                         <p>Imprime tablas fijas y juega en persona con verificación automática</p>
-                        <div class="opcion-features">
-                            <span class="feature"><i class="fas fa-print"></i> Tablas imprimibles</span>
-                            <span class="feature"><i class="fas fa-check-circle"></i> Verificación automática</span>
-                        </div>
                         <button id="btnModoPresencial" class="btn btn-primary">
                             <i class="fas fa-print"></i> Ir al Modo Presencial
                         </button>
@@ -179,19 +121,9 @@
 
         <!-- Pantalla de selección de tabla -->
         <div id="pantallaSeleccionTabla" class="pantalla oculta">
-            <!-- Fondo animado -->
-            <div class="animated-bg">
-                <div class="bg-shapes">
-                    <div class="shape shape-1"></div>
-                    <div class="shape shape-2"></div>
-                    <div class="shape shape-3"></div>
-                    <div class="shape shape-4"></div>
-                </div>
-            </div>
-            
             <div class="container">
                 <div class="header">
-                    <h1><i class="fas fa-dice"></i> Bingo Online</h1>
+                    <h1><i class="fas fa-bingo"></i> Bingo Online</h1>
                     <h2>Selecciona tu Tabla</h2>
                 </div>
                 
