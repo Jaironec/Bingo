@@ -52,7 +52,7 @@ window.BingoConfig = {
     patterns: {
         linea: {
             name: 'Línea',
-            description: '5 números en línea (horizontal, vertical o diagonal)',
+            description: '5 números en línea (horizontal o vertical)',
             enabled: true,
             icon: 'fas fa-minus'
         },
