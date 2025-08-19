@@ -217,6 +217,13 @@ body {
     font-size: 0.9rem;
 }
 
+/* Tiebreak dado */
+.dice-card { background:#fff; border:2px solid #e2e8f0; border-radius:10px; padding:12px; min-width:120px; text-align:center; }
+.dice-card .name { font-weight:600; color:#2d3748; margin-bottom:6px; }
+.dice { width:48px; height:48px; margin:0 auto 6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.2rem; box-shadow:0 2px 6px rgba(0,0,0,0.15); animation: diceRoll 1s ease; }
+.dice.winner { background:linear-gradient(135deg,#48bb78,#38a169); box-shadow:0 4px 10px rgba(56,161,105,0.35); }
+@keyframes diceRoll { 0%{transform:rotate(0) scale(1)} 50%{transform:rotate(180deg) scale(1.1)} 100%{transform:rotate(360deg) scale(1)} }
+
 .btn-bingo:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(159, 122, 234, 0.3);
