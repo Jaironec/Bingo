@@ -17,6 +17,10 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+// Servir un favicon básico si el navegador solicita .ico y no existe uno
+app.get('/favicon.ico', (req, res) => {
+  res.redirect(302, '/favicon.svg');
+});
 
 // Estructura de datos para manejar las salas
 const salas = new Map();
