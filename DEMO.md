@@ -40,7 +40,6 @@ Abre `http://localhost:3000` en varias pestañas para simular múltiples jugador
 ### Línea
 - **Horizontal**: 5 números en una fila
 - **Vertical**: 5 números en una columna  
-- **Diagonal**: 5 números en diagonal
 
 ### Tabla Llena
 - Todos los 25 números de la tabla

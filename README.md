@@ -10,7 +10,7 @@ Un juego de bingo multijugador en tiempo real con salas, tablas únicas y múlti
 - **Canto automático**: El sistema "canta" los números automáticamente
 - **Marcado interactivo**: Los jugadores pueden marcar sus números en tiempo real
 - **Múltiples patrones de juego**:
-  - Línea (horizontal, vertical o diagonal)
+  - Línea (horizontal o vertical)
   - Tabla llena
   - Cuatro esquinas
   - LOCO (5 números)
@@ -88,7 +88,6 @@ Un juego de bingo multijugador en tiempo real con salas, tablas únicas y múlti
 ### Línea
 - **Horizontal**: 5 números en una fila
 - **Vertical**: 5 números en una columna
-- **Diagonal**: 5 números en diagonal (principal o secundaria)
 
 ### Tabla Llena
 - Todos los 25 números de la tabla

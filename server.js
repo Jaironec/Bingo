@@ -107,14 +107,14 @@ function generarTablasUnicas() {
 function verificarBingo(tabla, numerosMarcados, patron, numeroUltimo) {
   const numerosSet = new Set(numerosMarcados);
   const incluyeUltimo = (fila, col) => {
-    try { return tabla[fila][col].numero === numeroUltimo || tabla[fila][col].esLibre === true; } catch { return false; }
+    try { return tabla[fila][col].numero === numeroUltimo; } catch { return false; }
   };
   const isMarked = (celda) => !!(celda && (numerosSet.has(celda.numero) || celda.esLibre === true));
   
   switch (patron) {
     case 'tablaLlena':
       if (tabla.every(fila => fila.every(celda => isMarked(celda))) &&
-          tabla.some(fila => fila.some(celda => celda.numero === numeroUltimo || celda.esLibre === true))) {
+          tabla.some(fila => fila.some(celda => celda.numero === numeroUltimo))) {
         return { ganado: true, tipo: 'tabla llena' };
       }
       break;
@@ -146,13 +146,13 @@ function verificarBingo(tabla, numerosMarcados, patron, numeroUltimo) {
     case 'linea':
       for (let col = 0; col < 5; col++) {
         const completa = tabla.every(fila => isMarked(fila[col]));
-        if (completa && tabla.some((fila, f) => incluyeUltimo(f, col))) {
+        if (completa && tabla.some((_, f) => incluyeUltimo(f, col))) {
           return { ganado: true, tipo: 'línea vertical', columna: col + 1 };
         }
       }
       for (let fila = 0; fila < 5; fila++) {
         const completa = tabla[fila].every(celda => isMarked(celda));
-        if (completa && tabla[fila].some(celda => celda.numero === numeroUltimo || celda.esLibre === true)) {
+        if (completa && tabla[fila].some(celda => celda.numero === numeroUltimo)) {
           return { ganado: true, tipo: 'línea horizontal', fila: fila + 1 };
         }
       }
