@@ -24,6 +24,9 @@
                     <div class="opcion">
                         <h3><i class="fas fa-plus-circle"></i> Crear Sala</h3>
                         <p>Crea una nueva sala y comparte el código con tus amigos</p>
+                        <div class="input-group" aria-label="Opciones de creación de sala">
+                            <input type="password" id="passwordCrear" placeholder="Contraseña (opcional)" aria-label="Contraseña opcional para la sala">
+                        </div>
                         <button id="btnCrearSala" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Crear Nueva Sala
                         </button>
@@ -34,6 +37,7 @@
                         <p>Únete a una sala existente con el código de invitación</p>
                         <div class="input-group">
                             <input type="text" id="codigoSala" placeholder="Código de la sala" maxlength="36">
+                            <input type="password" id="passwordUnirse" placeholder="Contraseña (si requiere)" aria-label="Contraseña de la sala si es requerida">
                             <button id="btnUnirseSala" class="btn btn-secondary">
                                 <i class="fas fa-sign-in-alt"></i> Unirse
                             </button>
@@ -130,6 +134,7 @@
                 <div class="info-sala">
                     <div class="codigo-sala">
                         <strong>Código de Sala:</strong> <span id="codigoSalaJugador">-</span>
+                        <button id="btnCopiarEnlace" class="btn btn-primary" style="margin-left:10px"><i class="fas fa-link"></i> Copiar enlace</button>
                     </div>
                     <div class="jugador-info">
                         <strong>Jugador:</strong> <span id="nombreJugador">-</span>
@@ -198,6 +203,7 @@
                         <button id="btnSalir" class="btn btn-danger">
                             <i class="fas fa-sign-out-alt"></i> Salir
                         </button>
+                        <button id="btnPreferencias" class="btn btn-secondary" title="Preferencias"><i class="fas fa-sliders-h"></i></button>
                     </div>
                 </div>
                 
@@ -262,10 +268,10 @@
         </div>
 
         <!-- Modal de declaración de bingo -->
-        <div id="modalBingo" class="modal oculta">
+        <div id="modalBingo" class="modal oculta" role="dialog" aria-modal="true" aria-labelledby="tituloModalBingo">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-trophy"></i> ¡BINGO!</h3>
+                    <h3 id="tituloModalBingo"><i class="fas fa-trophy"></i> ¡BINGO!</h3>
                 </div>
                 <div class="modal-body">
                     <p id="mensajeBingo"></p>
@@ -278,10 +284,10 @@
         </div>
 
         <!-- Modal de confirmación de salida -->
-        <div id="modalSalir" class="modal oculta">
+        <div id="modalSalir" class="modal oculta" role="dialog" aria-modal="true" aria-labelledby="tituloModalSalir">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-door-open"></i> ¿Salir de la sala?</h3>
+                    <h3 id="tituloModalSalir"><i class="fas fa-door-open"></i> ¿Salir de la sala?</h3>
                 </div>
                 <div class="modal-body">
                     <p id="mensajeSalir">Perderás tu progreso en esta partida y volverás al menú principal.</p>
@@ -371,9 +377,9 @@
         </div>
 
         <!-- Modal de verificación de bingo (offline) -->
-        <div id="modalOfflineBingo" class="modal oculta">
+        <div id="modalOfflineBingo" class="modal oculta" role="dialog" aria-modal="true" aria-labelledby="tituloOfflineBingo">
             <div class="modal-content">
-                <div class="modal-header"><h3><i class="fas fa-trophy"></i> Verificar Bingo</h3></div>
+                <div class="modal-header"><h3 id="tituloOfflineBingo"><i class="fas fa-trophy"></i> Verificar Bingo</h3></div>
                 <div class="modal-body">
                     <p>Selecciona los códigos de tablas que cantan bingo (puedes elegir varias):</p>
                     <div id="offlineCodesList" class="codes-list"></div>
@@ -390,10 +396,10 @@
         </div>
 
         <!-- Modal de tutorial -->
-        <div id="modalTutorial" class="modal oculta">
+        <div id="modalTutorial" class="modal oculta" role="dialog" aria-modal="true" aria-labelledby="tituloTutorial">
             <div class="modal-content modal-tutorial">
                 <div class="modal-header">
-                    <h3><i class="fas fa-lightbulb"></i> Cómo jugar</h3>
+                    <h3 id="tituloTutorial"><i class="fas fa-lightbulb"></i> Cómo jugar</h3>
                 </div>
                 <div class="modal-body">
                     <div class="tutorial-section">
@@ -427,10 +433,10 @@
         </div>
 
         <!-- Modal para ingresar nombre -->
-        <div id="modalNombre" class="modal oculta">
+        <div id="modalNombre" class="modal oculta" role="dialog" aria-modal="true" aria-labelledby="tituloNombre">
             <div class="modal-content modal-nombre">
                 <div class="modal-header">
-                    <h3><i class="fas fa-user"></i> Ingresa tu Nombre</h3>
+                    <h3 id="tituloNombre"><i class="fas fa-user"></i> Ingresa tu Nombre</h3>
                 </div>
                 <div class="modal-body">
                     <div class="input-nombre-container">
@@ -443,6 +449,32 @@
                 <div class="modal-footer">
                     <button id="btnCancelarNombre" class="btn btn-secondary">Cancelar</button>
                     <button id="btnConfirmarNombre" class="btn btn-primary">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de preferencias -->
+        <div id="modalPreferencias" class="modal oculta" role="dialog" aria-modal="true" aria-labelledby="tituloPreferencias">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="tituloPreferencias"><i class="fas fa-sliders-h"></i> Preferencias</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="config-seccion">
+                        <h3>Sonido</h3>
+                        <div class="velocidad">
+                            <input type="range" id="sliderVolumen" min="0" max="100" value="50" step="1" aria-label="Volumen general">
+                            <span id="textoVolumen">50%</span>
+                        </div>
+                        <label class="checkbox"><input type="checkbox" id="chkMute"><span class="checkmark"></span> Silenciar</label>
+                    </div>
+                    <div class="config-seccion">
+                        <h3>Tema</h3>
+                        <label class="checkbox"><input type="checkbox" id="toggleTema"><span class="checkmark"></span> Tema oscuro</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCerrarPreferencias" class="btn btn-primary">Cerrar</button>
                 </div>
             </div>
         </div>
