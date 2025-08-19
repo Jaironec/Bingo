@@ -4,47 +4,26 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const helmet = require('helmet');
-const compression = require('compression');
-const pino = require('pino');
-const Sentry = require('@sentry/node');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "*",
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
-// Seguridad y CORS
-if (process.env.SENTRY_DSN) {
-  Sentry.init({ dsn: process.env.SENTRY_DSN });
-  app.use(Sentry.Handlers.requestHandler());
-}
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
-app.use(compression());
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 // Servir un favicon básico si el navegador solicita .ico y no existe uno
 app.get('/favicon.ico', (req, res) => {
   res.redirect(302, '/favicon.svg');
 });
-if (process.env.SENTRY_DSN) {
-  app.use(Sentry.Handlers.errorHandler());
-}
-
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
 // Estructura de datos para manejar las salas
 const salas = new Map();
-const tokens = new Map(); // sessionToken -> { salaId, jugadorId }
-const baneadosPorSala = new Map(); // salaId -> Set(sessionToken)
-const bingoThrottle = new Map(); // socket.id -> lastTs
-const BINGO_THROTTLE_MS = parseInt(process.env.BINGO_THROTTLE_MS || '1500', 10);
-const sessionTokens = new Map(); // token -> { salaId, jugadorId }
 
 // Generar código de sala de 4 dígitos
 function generarCodigoSala() {
@@ -53,54 +32,54 @@ function generarCodigoSala() {
 
 // Generador de tablas de bingo
 function generarTablaBingo() {
-const tabla = [];
-const numeros = new Set();
+  const tabla = [];
+  const numeros = new Set();
   
-// Generar números únicos para cada columna
-for (let col = 0; col < 5; col++) {
-  const columna = [];
-  const min = col * 15 + 1;
-  const max = (col + 1) * 15;
-  
-  while (columna.length < 5) {
-    const num = Math.floor(Math.random() * (max - min + 1)) + min;
-    if (!numeros.has(num)) {
-      numeros.add(num);
-      columna.push(num);
+  // Generar números únicos para cada columna
+  for (let col = 0; col < 5; col++) {
+    const columna = [];
+    const min = col * 15 + 1;
+    const max = (col + 1) * 15;
+    
+    while (columna.length < 5) {
+      const num = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (!numeros.has(num)) {
+        numeros.add(num);
+        columna.push(num);
+      }
     }
+    tabla.push(columna);
   }
-  tabla.push(columna);
-}
   
-// Transponer la matriz para obtener las filas con letras B-I-N-G-O
-const filas = [];
-const letras = ['B', 'I', 'N', 'G', 'O'];
+  // Transponer la matriz para obtener las filas con letras B-I-N-G-O
+  const filas = [];
+  const letras = ['B', 'I', 'N', 'G', 'O'];
   
-for (let i = 0; i < 5; i++) {
-  const fila = [];
-  for (let j = 0; j < 5; j++) {
-    const numero = tabla[j][i];
-    const letra = letras[j];
-    fila.push({
-      numero: numero,
-      letra: letra,
-      numeroConLetra: `${letra}${numero}`
-    });
+  for (let i = 0; i < 5; i++) {
+    const fila = [];
+    for (let j = 0; j < 5; j++) {
+      const numero = tabla[j][i];
+      const letra = letras[j];
+      fila.push({
+        numero: numero,
+        letra: letra,
+        numeroConLetra: `${letra}${numero}`
+      });
+    }
+    filas.push(fila);
   }
-  filas.push(fila);
-}
   
-// Marcar centro libre (FREE)
-if (filas[2] && filas[2][2]) {
-  filas[2][2] = {
-    numero: 0,
-    letra: 'FREE',
-    numeroConLetra: 'FREE',
-    esLibre: true
-  };
-}
+  // Marcar centro libre (FREE)
+  if (filas[2] && filas[2][2]) {
+    filas[2][2] = {
+      numero: 0,
+      letra: 'FREE',
+      numeroConLetra: 'FREE',
+      esLibre: true
+    };
+  }
   
-return filas;
+  return filas;
 }
 
 // Generar 21 tablas únicas
@@ -123,18 +102,6 @@ function generarTablasUnicas() {
   }
   
   return tablas;
-}
-
-function sanearNombre(nombre) {
-  try {
-    if (!nombre) return 'Jugador';
-    let s = String(nombre).trim();
-    s = s.replace(/[^\p{L}\p{N}\s._-]/gu, '');
-    if (s.length === 0) s = 'Jugador';
-    return s.substring(0, 20);
-  } catch {
-    return 'Jugador';
-  }
 }
 
 // Verificar patrones de bingo
@@ -217,43 +184,24 @@ io.on('connection', (socket) => {
         velocidadCanto: data.velocidadCanto || 3000
       },
       ganadores: [],
-      _ultimaActividad: Date.now(),
-      inviteToken: uuidv4(),
-      password: data.password || ''
+      _ultimaActividad: Date.now() // Para persistencia breve
     };
     
     // Agregar al anfitrión como jugador también
     const anfitrionJugador = {
       id: socket.id,
-      nombre: sanearNombre(data.nombreAnfitrion || 'Anfitrión'),
+      nombre: data.nombreAnfitrion || 'Anfitrión',
       tablaSeleccionada: null,
       numerosMarcados: [],
-      esAnfitrion: true,
-      token: uuidv4()
+      esAnfitrion: true
     };
     
     sala.jugadores.push(anfitrionJugador);
     salas.set(salaId, sala);
-    sessionTokens.set(anfitrionJugador.token, { salaId, jugadorId: socket.id });
     socket.join(salaId);
     
     socket.emit('salaCreada', { salaId, sala, jugador: anfitrionJugador });
-    socket.emit('session', { token: anfitrionJugador.token });
-    console.log(`Sala creada: ${salaId} por ${anfitrionJugador.nombre}`);
-  });
-  
-  // Rejoin por token de sesión
-  socket.on('rejoinSala', (data) => {
-    const ref = sessionTokens.get(data?.token);
-    if (!ref) { socket.emit('error', { mensaje: 'Sesión no válida' }); return; }
-    const sala = salas.get(ref.salaId);
-    if (!sala) { socket.emit('error', { mensaje: 'Sala no encontrada' }); return; }
-    const jugador = sala.jugadores.find(j => j.token === data.token);
-    if (!jugador) { socket.emit('error', { mensaje: 'Jugador no encontrado' }); return; }
-    jugador.id = socket.id;
-    sessionTokens.set(data.token, { salaId: sala.id, jugadorId: socket.id });
-    socket.join(sala.id);
-    socket.emit('unidoSala', { sala, jugador });
+    console.log(`Sala creada: ${salaId} por ${data.nombreAnfitrion || 'Anfitrión'}`);
   });
   
   // Unirse a sala
@@ -274,38 +222,22 @@ io.on('connection', (socket) => {
       socket.emit('error', { mensaje: 'El juego ya está en progreso' });
       return;
     }
-
-    // Validar invitación o contraseña si están configuradas
-    if (sala.password) {
-      if (!data.password || data.password !== sala.password) {
-        socket.emit('error', { mensaje: 'Contraseña incorrecta' });
-        return;
-      }
-    } else {
-      if (data.inviteToken && data.inviteToken !== sala.inviteToken) {
-        socket.emit('error', { mensaje: 'Invitación inválida' });
-        return;
-      }
-    }
     
     const jugador = {
       id: socket.id,
-      nombre: sanearNombre(data.nombre),
+      nombre: data.nombre,
       tablaSeleccionada: null,
       numerosMarcados: [],
-      esAnfitrion: false,
-      token: uuidv4()
+      esAnfitrion: false
     };
     
     sala.jugadores.push(jugador);
-    sessionTokens.set(jugador.token, { salaId: sala.id, jugadorId: socket.id });
     socket.join(data.salaId);
     
     socket.emit('unidoSala', { sala, jugador });
-    socket.emit('session', { token: jugador.token });
     socket.to(data.salaId).emit('jugadorUnido', jugador);
     
-    console.log(`Jugador ${jugador.nombre} se unió a la sala ${data.salaId}`);
+    console.log(`Jugador ${data.nombre} se unió a la sala ${data.salaId}`);
   });
   
   // Seleccionar tabla
@@ -386,45 +318,6 @@ io.on('connection', (socket) => {
     console.log(`Juego iniciado en sala ${data.salaId}`);
   });
   
-  // Controles del anfitrión
-  socket.on('transferirAnfitrion', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala || sala.anfitrion !== socket.id) return;
-    const nuevo = sala.jugadores.find(j => j.id === data.nuevoAnfitrionId);
-    if (!nuevo) { socket.emit('error', { mensaje: 'Jugador no encontrado' }); return; }
-    sala.anfitrion = nuevo.id;
-    io.to(sala.id).emit('estadoJuego', { estado: 'transferido', por: nuevo.nombre });
-  });
-  socket.on('expulsarJugador', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala || sala.anfitrion !== socket.id) return;
-    const idx = sala.jugadores.findIndex(j => j.id === data.jugadorId);
-    if (idx === -1) return;
-    const jug = sala.jugadores[idx];
-    sala.jugadores.splice(idx, 1);
-    const sock = io.sockets.sockets.get(data.jugadorId);
-    if (sock) sock.leave(sala.id);
-    io.to(sala.id).emit('jugadorDesconectado', jug);
-  });
-  socket.on('banearJugador', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala || sala.anfitrion !== socket.id) return;
-    const jug = sala.jugadores.find(j => j.id === data.jugadorId);
-    if (!jug) return;
-    sala._baneados = sala._baneados || new Set();
-    sala._baneados.add(jug.token);
-    const sock = io.sockets.sockets.get(jug.id);
-    if (sock) sock.disconnect(true);
-    io.to(sala.id).emit('jugadorDesconectado', jug);
-  });
-  socket.on('cerrarSala', (data) => {
-    const sala = salas.get(data.salaId);
-    if (!sala || sala.anfitrion !== socket.id) return;
-    io.to(sala.id).emit('juegoTerminado', { mensaje: 'La sala ha sido cerrada por el anfitrión' });
-    io.in(sala.id).socketsLeave(sala.id);
-    salas.delete(sala.id);
-  });
-  
   // Marcar número
   socket.on('marcarNumero', (data) => {
     const sala = salas.get(data.salaId);
@@ -463,14 +356,6 @@ io.on('connection', (socket) => {
   socket.on('declararBingo', (data) => {
     const sala = salas.get(data.salaId);
     if (!sala) return;
-    // Throttle por socket
-    const last = bingoThrottle.get(socket.id) || 0;
-    const now = Date.now();
-    if (now - last < BINGO_THROTTLE_MS) {
-      socket.emit('error', { mensaje: 'Demasiadas solicitudes de bingo, intenta en un momento' });
-      return;
-    }
-    bingoThrottle.set(socket.id, now);
     // Permitir declarar durante la pausa si es con el mismo último número, pero bloquear si ya terminó por tabla llena
     const yaTerminoPorTablaLlena = sala.ganadores.some(g => g.patron === 'tablaLlena');
     if (yaTerminoPorTablaLlena) {
@@ -735,14 +620,6 @@ function iniciarCantoAutomatico(salaId) {
 }
 
 // Rutas API
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
-});
-app.get('/metrics', (req, res) => {
-  let totalJugadores = 0, activas = 0;
-  salas.forEach(s => { totalJugadores += s.jugadores.length; if (s.juegoActivo) activas++; });
-  res.json({ salas: salas.size, jugadores: totalJugadores, activas });
-});
 app.get('/api/salas', (req, res) => {
   const salasInfo = Array.from(salas.values()).map(sala => ({
     id: sala.id,

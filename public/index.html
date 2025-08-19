@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bingo Online</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Pantalla de inicio -->
+        <div id="pantallaInicio" class="pantalla">
+            <div class="container">
+                <div class="header">
+                    <h1><i class="fas fa-dice"></i> Bingo Multijugador</h1>
+                    <p>¡Diviértete jugando bingo con amigos en tiempo real!</p>
+                </div>
+                
+                <div class="opciones">
+                    <div class="opcion">
+                        <h3><i class="fas fa-plus-circle"></i> Crear Sala</h3>
+                        <p>Crea una nueva sala y comparte el código con tus amigos</p>
+                        <button id="btnCrearSala" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Crear Nueva Sala
+                        </button>
+                    </div>
+                    
+                    <div class="opcion">
+                        <h3><i class="fas fa-sign-in-alt"></i> Unirse a Sala</h3>
+                        <p>Únete a una sala existente con el código de invitación</p>
+                        <div class="input-group">
+                            <input type="text" id="codigoSala" placeholder="Código de la sala" maxlength="36">
+                            <button id="btnUnirseSala" class="btn btn-secondary">
+                                <i class="fas fa-sign-in-alt"></i> Unirse
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="opcion">
+                        <h3><i class="fas fa-users"></i> Juego Presencial</h3>
+                        <p>Imprime tablas fijas y juega en persona con verificación automática</p>
+                        <button id="btnModoPresencial" class="btn btn-primary">
+                            <i class="fas fa-print"></i> Ir al Modo Presencial
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de configuración de sala -->
+        <div id="pantallaConfiguracion" class="pantalla oculta">
+            <div class="container">
+                <div class="header">
+                    <h2><i class="fas fa-cog"></i> Configurar Sala</h2>
+                    <p>Configura las opciones del juego antes de comenzar</p>
+                </div>
+                
+                <div class="configuracion">
+                    <div class="config-seccion">
+                        <h3>Patrones de Juego</h3>
+                        <div class="patrones">
+                            <label class="checkbox">
+                                <input type="checkbox" id="patronLinea" checked>
+                                <span class="checkmark"></span>
+                                Línea (horizontal, vertical o diagonal)
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="patronTablaLlena" checked>
+                                <span class="checkmark"></span>
+                                Tabla Llena
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="patronCuatroEsquinas" checked>
+                                <span class="checkmark"></span>
+                                Cuatro Esquinas
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="patronLoco">
+                                <span class="checkmark"></span>
+                                Patrón Loco (X)
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="patronMachetaso" checked>
+                                <span class="checkmark"></span>
+                                Machetaso (diagonal por el centro)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="config-seccion">
+                        <h3>Velocidad del Canto</h3>
+                        <div class="velocidad">
+                            <input type="range" id="velocidadCanto" class="range" min="1000" max="10000" value="3000" step="100">
+                            <span id="velocidadTexto">3 segundos</span>
+                        </div>
+                    </div>
+                    
+                    <div class="config-seccion">
+                        <h3>Información de la Sala</h3>
+                        <div class="info-sala">
+                            <p><strong>Código de la sala:</strong> <span id="codigoSalaMostrar"></span></p>
+                            <p><strong>Jugadores:</strong> <span id="numJugadoresConfig">1</span>/20</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="acciones">
+                    <button id="btnIniciarJuego" class="btn btn-success">
+                        <i class="fas fa-play"></i> Iniciar Juego
+                    </button>
+                    <button id="btnVolverInicio" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de selección de tabla -->
+        <div id="pantallaSeleccionTabla" class="pantalla oculta">
+            <div class="container">
+                <div class="header">
+                    <h1><i class="fas fa-bingo"></i> Bingo Online</h1>
+                    <h2>Selecciona tu Tabla</h2>
+                </div>
+                
+                <div class="info-sala">
+                    <div class="codigo-sala">
+                        <strong>Código de Sala:</strong> <span id="codigoSalaJugador">-</span>
+                    </div>
+                    <div class="jugador-info">
+                        <strong>Jugador:</strong> <span id="nombreJugador">-</span>
+                    </div>
+                    <div class="num-jugadores">
+                        <strong>Jugadores en Sala:</strong> <span id="numJugadoresSeleccion">-</span>
+                    </div>
+                </div>
+                
+                <div class="jugadores-sala-seleccion">
+                    <h3>Jugadores en la Sala</h3>
+                    <div id="listaJugadoresSeleccion" class="lista-jugadores-seleccion"></div>
+                </div>
+                
+                <div class="tablas-container">
+                    <h3>Tablas Disponibles</h3>
+                    <div id="gridTablas" class="grid-tablas"></div>
+                </div>
+                
+                <!-- Botón para anfitrión iniciar juego -->
+                <div id="controlesAnfitrion" class="controles-anfitrion oculta">
+                    <!-- Configuración rápida (solo anfitrión) -->
+                    <div class="configuracion-rapida anfitrion-only">
+                        <h3>Configuración Rápida</h3>
+                        <div class="patrones-rapidos">
+                            <label class="patron-checkbox">
+                                <input type="checkbox" value="linea" checked> Línea
+                            </label>
+                            <label class="patron-checkbox">
+                                <input type="checkbox" value="tablaLlena" checked> Tabla Llena
+                            </label>
+                            <label class="patron-checkbox">
+                                <input type="checkbox" value="cuatroEsquinas" checked> Cuatro Esquinas
+                            </label>
+                            <label class="patron-checkbox">
+                                <input type="checkbox" value="loco" checked> Loco
+                            </label>
+                            <label class="patron-checkbox">
+                                <input type="checkbox" value="machetaso" checked> Machetaso
+                            </label>
+                        </div>
+                        <div class="velocidad-rapida">
+                            <label>Velocidad: <span id="velocidadTextoRapido">3s</span></label>
+                            <input type="range" id="velocidadCantoRapido" class="range" min="1000" max="10000" value="3000" step="100">
+                        </div>
+                        <button id="btnIniciarJuegoRapido" class="btn btn-success">
+                            <i class="fas fa-play"></i> Iniciar Juego
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla del juego -->
+        <div id="pantallaJuego" class="pantalla oculta">
+            <div class="container-juego">
+                <div class="header-juego">
+                    <div class="info-juego">
+                        <h2><i class="fas fa-gamepad"></i> ¡BINGO!</h2>
+                        <p>Sala: <strong id="codigoSalaJuego"></strong></p>
+                    </div>
+                    <div class="controles-juego">
+                        <button id="btnPausar" class="btn btn-warning anfitrion-only">
+                            <i class="fas fa-pause"></i> Pausar
+                        </button>
+                        <button id="btnSalir" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt"></i> Salir
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="juego-content">
+                    <div class="panel-izquierdo">
+                        <div class="tabla-bingo-container">
+                            <h3>Tu Tabla de Bingo</h3>
+                            <div id="tablaBingo" class="tabla-bingo"></div>
+                        </div>
+                        
+                        <div class="info-depuracion">
+                            <div id="infoDepuracion"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-central">
+                        <div class="numero-actual">
+                            <h3>Número Actual</h3>
+                            <div id="numeroActual" class="numero-grande">-</div>
+                        </div>
+                        
+                        <div class="numeros-cantados">
+                            <h3>Números Cantados</h3>
+                            <div id="numerosCantados" class="numeros-grid"></div>
+                        </div>
+                        
+                        <div class="botones-bingo">
+                            <h3>Declarar Bingo</h3>
+                            <div class="botones-patron">
+                                <button class="btn btn-bingo" data-patron="linea">
+                                    <i class="fas fa-minus"></i> Línea
+                                </button>
+                                <button class="btn btn-bingo" data-patron="tablaLlena">
+                                    <i class="fas fa-square"></i> Tabla Llena
+                                </button>
+                                <button class="btn btn-bingo" data-patron="cuatroEsquinas">
+                                    <i class="fas fa-border-all"></i> Cuatro Esquinas
+                                </button>
+                                <button class="btn btn-bingo" data-patron="loco">
+                                    <i class="fas fa-times"></i> Loco
+                                </button>
+                                <button class="btn btn-bingo" data-patron="machetaso">
+                                    <i class="fas fa-slash"></i> Machetaso
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-derecho">
+                        <div class="jugadores-sala">
+                            <h3>Jugadores en la Sala</h3>
+                            <div id="listaJugadores" class="lista-jugadores"></div>
+                        </div>
+                        
+                        <div class="historial">
+                            <h3>Historial</h3>
+                            <div id="historialEventos" class="lista-historial"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de declaración de bingo -->
+        <div id="modalBingo" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-trophy"></i> ¡BINGO!</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="mensajeBingo"></p>
+                    <div id="detallesBingo"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCerrarModal" class="btn btn-primary">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación de salida -->
+        <div id="modalSalir" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-door-open"></i> ¿Salir de la sala?</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="mensajeSalir">Perderás tu progreso en esta partida y volverás al menú principal.</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCancelarSalir" class="btn btn-secondary">Cancelar</button>
+                    <button id="btnConfirmarSalir" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de configuración modo presencial (offline) -->
+        <div id="pantallaOfflineSetup" class="pantalla oculta">
+            <div class="container">
+                <div class="header">
+                    <h2><i class="fas fa-users"></i> Modo Presencial</h2>
+                    <p>Imprime tablas fijas e ingresa los códigos que se van a usar</p>
+                </div>
+                <div class="configuracion">
+                    <div class="config-seccion">
+                        <h3>Tablas Fijas</h3>
+                        <div>
+                            <button id="btnImprimirTablas" class="btn btn-secondary">
+                                <i class="fas fa-file-pdf"></i> Imprimir / Descargar PDF
+                            </button>
+                        </div>
+                    </div>
+                    <div class="config-seccion">
+                        <h3>Códigos de Tablas para esta partida</h3>
+                        <div id="offlineCodesPick" class="codes-list" style="min-height:42px;"></div>
+                        <small>Selecciona las tablas que jugarán</small>
+                    </div>
+                    <div class="config-seccion">
+                        <h3>Configuración Rápida</h3>
+                        <div class="patrones">
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronLinea" checked><span class="checkmark"></span> Línea</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronTablaLlena" checked><span class="checkmark"></span> Tabla Llena</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronCuatroEsquinas" checked><span class="checkmark"></span> Cuatro Esquinas</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronLoco"><span class="checkmark"></span> LOCO (5 números)</label>
+                            <label class="checkbox"><input type="checkbox" id="offlinePatronMachetaso" checked><span class="checkmark"></span> Machetaso</label>
+                        </div>
+                        <div class="velocidad">
+                            <input type="range" id="velocidadOffline" class="range" min="1000" max="10000" value="3000" step="100">
+                            <span id="velocidadOfflineTexto">3.0 segundos</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="acciones">
+                    <button id="btnIniciarOffline" class="btn btn-success"><i class="fas fa-play"></i> Iniciar</button>
+                    <button id="btnVolverInicioOffline" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla del juego modo presencial (offline) -->
+        <div id="pantallaOfflineJuego" class="pantalla oculta">
+            <div class="container-juego">
+                <div class="header-juego">
+                    <div class="info-juego">
+                        <h2><i class="fas fa-gamepad"></i> Modo Presencial</h2>
+                        <p>Número actual: <strong id="offlineNumeroActual">-</strong></p>
+                    </div>
+                    <div class="controles-juego">
+                        <button id="btnPausarOffline" class="btn btn-warning"><i class="fas fa-pause"></i> Pausar</button>
+                        <button id="btnBingoOffline" class="btn btn-success"><i class="fas fa-trophy"></i> Bingo</button>
+                        <button id="btnSalirOffline" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                    </div>
+                </div>
+                <div class="juego-content">
+                    <div class="panel-central" style="grid-column: span 2;">
+                        <div class="offline-board-wrap">
+                            <div id="offlineBingoBoard" class="offline-bingo-board"></div>
+                        </div>
+                        <div class="numeros-cantados offline">
+                            <h3>Números Cantados</h3>
+                            <div id="offlineNumerosCantados" class="numeros-grid"></div>
+                        </div>
+                    </div>
+                    <div class="panel-derecho">
+                        <div class="historial">
+                            <h3>Historial</h3>
+                            <div id="historialEventosOffline" class="lista-historial"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de verificación de bingo (offline) -->
+        <div id="modalOfflineBingo" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header"><h3><i class="fas fa-trophy"></i> Verificar Bingo</h3></div>
+                <div class="modal-body">
+                    <p>Selecciona los códigos de tablas que cantan bingo (puedes elegir varias):</p>
+                    <div id="offlineCodesList" class="codes-list"></div>
+                    <div style="margin:8px 0; color:#718096; font-size:0.9rem;">Si no tienes la lista arriba, ingresa el código manualmente:</div>
+                    <input type="text" id="inputCodigoOfflineBingo" placeholder="Ej: OFF-001" style="width:100%; padding:8px;">
+                    <div id="resultadoOfflineBingo" style="margin-top:10px;" class="verification-results"></div>
+                    <div id="offlineTablaPreview" class="tabla-bingo-mini" style="margin-top:12px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnConfirmarOfflineBingo" class="btn btn-primary">Confirmar</button>
+                    <button id="btnCancelarOfflineBingo" class="btn btn-secondary">Continuar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de tutorial -->
+        <div id="modalTutorial" class="modal oculta">
+            <div class="modal-content modal-tutorial">
+                <div class="modal-header">
+                    <h3><i class="fas fa-lightbulb"></i> Cómo jugar</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="tutorial-section">
+                        <h4>Resumen rápido</h4>
+                        <ol class="tutorial-steps">
+                            <li>Crea o únete a una sala.</li>
+                            <li>Elige tu tabla de bingo entre las disponibles.</li>
+                            <li>Se cantan números automáticamente; márcalos si están en tu tabla.</li>
+                            <li>Cuando completes un patrón, declara Bingo con el botón del patrón.</li>
+                        </ol>
+                    </div>
+                    <div class="tutorial-section">
+                        <h4>Modos de bingo</h4>
+                        <ul class="tutorial-modos">
+                            <li><span class="modo-icono"><i class="fas fa-minus"></i></span><strong>Línea:</strong> completa una fila o columna. (No incluye diagonales)</li>
+                            <li><span class="modo-icono"><i class="fas fa-border-all"></i></span><strong>Cuatro Esquinas:</strong> marca las cuatro esquinas de tu tabla.</li>
+                            <li><span class="modo-icono"><i class="fas fa-times"></i></span><strong>LOCO (5 números):</strong> marca exactamente 5 números cualesquiera.</li>
+                            <li><span class="modo-icono"><i class="fas fa-slash"></i></span><strong>Machetaso:</strong> completa una diagonal que pase por el centro de la tabla (principal o secundaria).</li>
+                            <li><span class="modo-icono"><i class="fas fa-square"></i></span><strong>Tabla Llena:</strong> marca todos los números de tu tabla.</li>
+                        </ul>
+                    </div>
+                    <label class="no-mostrar">
+                        <input type="checkbox" id="chkNoMostrarTutorial">
+                        No mostrar de nuevo en esta sesión
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCerrarTutorial" class="btn btn-primary">Entendido</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para ingresar nombre -->
+        <div id="modalNombre" class="modal oculta">
+            <div class="modal-content modal-nombre">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user"></i> Ingresa tu Nombre</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="input-nombre-container">
+                        <input type="text" id="inputNombre" placeholder="Escribe tu nombre aquí..." maxlength="20">
+                        <div class="input-nombre-info">
+                            <span>Máximo 20 caracteres</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCancelarNombre" class="btn btn-secondary">Cancelar</button>
+                    <button id="btnConfirmarNombre" class="btn btn-primary">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notificaciones -->
+        <div id="notificaciones" class="notificaciones"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="config.js"></script>
+    <script src="sounds.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
