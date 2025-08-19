@@ -69,8 +69,8 @@ window.BingoConfig = {
             icon: 'fas fa-border-all'
         },
         loco: {
-            name: 'Patrón Loco',
-            description: 'Forma de X en la tabla',
+            name: 'LOCO (5 números)',
+            description: 'Marca exactamente 5 números cualesquiera',
             enabled: false,
             icon: 'fas fa-times'
         }

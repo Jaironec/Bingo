@@ -33,7 +33,7 @@
                         <h3><i class="fas fa-sign-in-alt"></i> Unirse a Sala</h3>
                         <p>Únete a una sala existente con el código de invitación</p>
                         <div class="input-group">
-                            <input type="text" id="codigoSala" placeholder="Código de la sala" maxlength="36">
+                            <input type="text" id="codigoSala" placeholder="Código (4 dígitos)" maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
                             <button id="btnUnirseSala" class="btn btn-secondary">
                                 <i class="fas fa-sign-in-alt"></i> Unirse
                             </button>
@@ -81,7 +81,7 @@
                             <label class="checkbox">
                                 <input type="checkbox" id="patronLoco">
                                 <span class="checkmark"></span>
-                                Patrón Loco (X)
+                                LOCO (5 números)
                             </label>
                             <label class="checkbox">
                                 <input type="checkbox" id="patronMachetaso" checked>
@@ -165,7 +165,7 @@
                                 <input type="checkbox" value="cuatroEsquinas" checked> Cuatro Esquinas
                             </label>
                             <label class="patron-checkbox">
-                                <input type="checkbox" value="loco" checked> Loco
+                                <input type="checkbox" value="loco" checked> LOCO (5 números)
                             </label>
                             <label class="patron-checkbox">
                                 <input type="checkbox" value="machetaso" checked> Machetaso
@@ -237,7 +237,7 @@
                                     <i class="fas fa-border-all"></i> Cuatro Esquinas
                                 </button>
                                 <button class="btn btn-bingo" data-patron="loco">
-                                    <i class="fas fa-times"></i> Loco
+                                    <i class="fas fa-times"></i> LOCO
                                 </button>
                                 <button class="btn btn-bingo" data-patron="machetaso">
                                     <i class="fas fa-slash"></i> Machetaso

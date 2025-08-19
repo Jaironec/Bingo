@@ -3,7 +3,6 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const server = http.createServer(app);
@@ -82,12 +81,12 @@ function generarTablaBingo() {
   return filas;
 }
 
-// Generar 21 tablas únicas
+// Generar 20 tablas únicas
 function generarTablasUnicas() {
   const tablas = [];
   const tablasSet = new Set();
   
-  while (tablas.length < 21) {
+  while (tablas.length < 20) {
     const tabla = generarTablaBingo();
     const tablaString = JSON.stringify(tabla);
     

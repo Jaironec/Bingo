@@ -1193,7 +1193,7 @@ function poblarSelectorCodigos() {
     const cont = document.getElementById('offlineCodesPick');
     if (!cont) return;
     cont.innerHTML = '';
-    for (let i=1; i<=21; i++) {
+    for (let i=1; i<=20; i++) {
         const code = `OFF-${String(i).padStart(3,'0')}`;
         const chip = document.createElement('div');
         chip.className = 'code-chip';
@@ -1211,7 +1211,7 @@ function obtenerCodigosSeleccionados() {
 function imprimirTablasOffline() {
     const pdfWindow = window.open('', '_blank');
     const seed = 12345;
-    const tablas = generarTablasFijas(seed, 21);
+    const tablas = generarTablasFijas(seed, 20);
     const estilos = `<style>@page{size:A4;margin:10mm}body{font-family:Arial;padding:0;margin:0} .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:10px} .card{border:2px solid #333;border-radius:10px;padding:10px;break-inside:avoid} table{width:100%;border-collapse:collapse} th,td{border:1px solid #000;text-align:center;padding:8px;font-size:14px} .cod{font-weight:700;margin:6px 0;font-size:16px} .free{background:#faf089;font-weight:700} .page-break{page-break-after:always}</style>`;
     let html = `<html><head><title>Tablas Presenciales</title>${estilos}</head><body>`;
     for (let i=0;i<tablas.length;i+=6){
