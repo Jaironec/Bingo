@@ -147,7 +147,13 @@ function configurarEventListeners() {
     const btnCerrarTiebreak = document.getElementById('btnCerrarTiebreak');
     if (btnCerrarTiebreak) {
         btnCerrarTiebreak.addEventListener('click', () => {
-            reanudarJuegoDespuesTiebreak();
+            // El servidor maneja automáticamente el tiebreak
+            // Solo cerrar el modal
+            const modal = document.getElementById('modalTiebreak');
+            if (modal) {
+                modal.classList.add('oculta');
+                limpiarEstadoTiebreak();
+            }
         });
     }
     
@@ -155,7 +161,13 @@ function configurarEventListeners() {
     const btnCerrarTiebreakManual = document.getElementById('btnCerrarTiebreakManual');
     if (btnCerrarTiebreakManual) {
         btnCerrarTiebreakManual.addEventListener('click', () => {
-            reanudarJuegoDespuesTiebreak();
+            // El servidor maneja automáticamente el tiebreak
+            // Solo cerrar el modal
+            const modal = document.getElementById('modalTiebreak');
+            if (modal) {
+                modal.classList.add('oculta');
+                limpiarEstadoTiebreak();
+            }
         });
     }
     
@@ -856,215 +868,62 @@ function manejarBingoDeclarado(ganador) {
     // Actualizar panel de patrones disponibles
     mostrarPatronesDisponibles();
     
-    // Verificar si hay empate (múltiples jugadores con el mismo patrón y número)
-    const hayEmpate = verificarEmpate(ganador);
+    // El servidor maneja automáticamente el tiebreak y la pausa
+    // Solo mostrar el modal de victoria y esperar a que el servidor reanude
     
-    // Si hay empate, pausar el juego y programar tiebreak
-    if (hayEmpate) {
-        console.log('🎲 Empate detectado, pausando juego y programando tiebreak');
-        
-        // Pausar el juego automáticamente
-        if (salaActual && jugadorActual && jugadorActual.esAnfitrion) {
-            socket.emit('pausarJuego', { 
-                salaId: salaActual.id,
-                motivo: 'empate'
-            });
-            mostrarNotificacion('¡Empate detectado! El juego se pausa automáticamente para el desempate', 'info');
-        }
-        
-        // Programar tiebreak para después del modal de victoria
-        setTimeout(() => {
-            iniciarTiebreak(hayEmpate);
-        }, 6000); // 5 segundos del modal de victoria + 1 segundo extra
-    }
-    
-    // Para tabla llena, verificar si hay empate primero
+    // Para tabla llena, mostrar modal de ganadores finales después de que se cierre el modal de bingo
     if (ganador.patron === 'tablaLlena') {
-        console.log('🏆 Tabla llena detectada, verificando si hay empate');
-        
-        // Verificar si hay empate en tabla llena
-        const hayEmpateTablaLlena = verificarEmpate(ganador);
-        
-        if (hayEmpateTablaLlena) {
-            console.log('🎲 Empate detectado en tabla llena, programando tiebreak');
-            // Programar tiebreak para después del modal de victoria
-            setTimeout(() => {
-                iniciarTiebreak(hayEmpateTablaLlena);
-            }, 6000); // 5 segundos del modal de victoria + 1 segundo extra
-        } else {
-            console.log('🏆 No hay empate en tabla llena, mostrando modal de ganadores finales');
-            // Mostrar modal de ganadores finales después de que se cierre el modal de bingo
-            setTimeout(() => {
-                mostrarModalGanadoresFinal();
-            }, 6000); // 5 segundos del temporizador + 1 segundo extra
-        }
+        console.log('🏆 Tabla llena detectada, mostrando modal de ganadores finales');
+        // Mostrar modal de ganadores finales después de que se cierre el modal de bingo
+        setTimeout(() => {
+            mostrarModalGanadoresFinal();
+        }, 6000); // 5 segundos del temporizador + 1 segundo extra
     } else {
-        // Solo iniciar temporizador si no es tabla llena Y no hay empate
-        if (!hayEmpate) {
-            iniciarTemporizadorModal(5);
-            setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
-        }
+        // Iniciar temporizador para cerrar el modal de bingo
+        // El modal se cerrará automáticamente después de 5 segundos
+        iniciarTemporizadorModal(5);
+        setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     }
 }
 
 function manejarTiebreakIniciado(data) {
     console.log('🎲 Tiebreak iniciado:', data);
     
-    // Verificar si realmente hay empate (múltiples jugadores con el mismo patrón y número)
-    if (!data || !data.empate || !data.jugadoresEmpatados || data.jugadoresEmpatados.length < 2) {
-        console.log('No hay empate real, no se muestra tiebreak');
-        return;
-    }
+    // NO mostrar el modal de tiebreak aquí
+    // Solo mostrar notificación de que se está esperando a otros posibles ganadores
+    mostrarNotificacion('Esperando a otros posibles ganadores...', 'info');
     
-    mostrarNotificacion(`¡Empate detectado entre ${data.jugadoresEmpatados.length} jugadores! Iniciando desempate...`, 'info');
-    
-    // Mostrar el modal de tiebreak
-    const modal = document.getElementById('modalTiebreak');
-    const mensaje = document.getElementById('tiebreakMensaje');
-    const resultados = document.getElementById('tiebreakResults');
-    const animacion = document.getElementById('tiebreakAnimation');
-    
-    if (!modal || !mensaje || !resultados || !animacion) {
-        console.error('❌ Elementos del modal tiebreak no encontrados');
-        return;
-    }
-    
-    modal.classList.remove('oculta');
-    
-    // Ocultar resultados anteriores
-    resultados.style.display = 'none';
-    animacion.style.display = 'block';
-    
-            // Mostrar información del empate
-        const infoEmpate = document.getElementById('tiebreakInfo');
-        if (infoEmpate) {
-            infoEmpate.innerHTML = `
-                <p><i class="fas fa-info-circle"></i> Empate en: <strong>${obtenerNombrePatron(data.patron)}</strong></p>
-                <p><i class="fas fa-dice"></i> Número ganador: <strong>${data.numeroGanador}</strong></p>
-                <p><i class="fas fa-users"></i> Jugadores empatados: <strong>${data.jugadoresEmpatados.map(j => j.jugador.nombre).join(', ')}</strong></p>
-                <p><i class="fas fa-trophy"></i> Solo se desempata <strong>${obtenerNombrePatron(data.patron)}</strong></p>
-                <p><i class="fas fa-pause"></i> El juego está en pausa durante el desempate</p>
-            `;
-        }
-    
-            mensaje.textContent = `¡Empate entre ${data.jugadoresEmpatados.length} jugadores! Preparando el desempate...`;
-    
-    // Iniciar animación secuencial de dados
-    iniciarAnimacionSecuencialDados(data.jugadoresEmpatados, data);
+    // El modal de tiebreak solo se mostrará cuando realmente haya empate
+    // (cuando se llame a manejarTiebreakResultado)
 }
 
 // Función para iniciar la animación secuencial de dados
-function iniciarAnimacionSecuencialDados(jugadores, dataEmpate) {
-    const mensaje = document.getElementById('tiebreakMensaje');
-    const animacion = document.getElementById('tiebreakAnimation');
-    
-    if (!mensaje || !animacion) {
-        console.error('❌ Elementos de tiebreak no encontrados');
-        return;
-    }
-    
-    console.log('🎲 Iniciando animación de dados para:', jugadores.map(j => j.jugador.nombre));
-    
-    // Guardar jugadores en variable global para acceso posterior
-    window.jugadoresTiebreak = jugadores;
-    
-    let jugadorActual = 0;
-    
-    function animarJugador() {
-        if (jugadorActual >= jugadores.length) {
-            // Todos los jugadores han tirado, calcular resultados
-            console.log('🎯 Todos los jugadores han tirado, calculando resultados...');
-            setTimeout(() => {
-                mensaje.textContent = 'Calculando resultados...';
-                setTimeout(() => {
-                    calcularResultadosTiebreak(jugadores, dataEmpate);
-                }, 1500);
-            }, 1000);
-            return;
-        }
-        
-        const jugador = jugadores[jugadorActual];
-        console.log(`🎲 Animando dados para: ${jugador.jugador.nombre}`);
-        mensaje.textContent = `${jugador.jugador.nombre} está tirando los dados...`;
-        
-        // Animar los dados girando con efecto visual mejorado
-        const dados = animacion.querySelectorAll('.dice-spinner');
-        dados.forEach((dado, index) => {
-            dado.classList.add('rolling');
-            console.log(`🎲 Dado ${index + 1} girando para ${jugador.jugador.nombre}`);
-        });
-        
-        // Después de 3 segundos, mostrar el resultado de este jugador
-        setTimeout(() => {
-            dados.forEach(dado => {
-                dado.classList.remove('rolling');
-            });
-            
-            // Generar números aleatorios para este jugador
-            const dado1 = Math.floor(Math.random() * 6) + 1;
-            const dado2 = Math.floor(Math.random() * 6) + 1;
-            
-            console.log(`🎲 ${jugador.jugador.nombre} sacó: ${dado1} + ${dado2} = ${dado1 + dado2}`);
-            
-            // Guardar el resultado
-            jugador.resultadoDados = { dado1, dado2, suma: dado1 + dado2 };
-            
-            mensaje.textContent = `${jugador.jugador.nombre} sacó ${dado1} + ${dado2} = ${dado1 + dado2}`;
-            
-            // Pasar al siguiente jugador después de 2 segundos
-            setTimeout(() => {
-                jugadorActual++;
-                animarJugador();
-            }, 2000);
-            
-        }, 3000);
-    }
-    
-    // Iniciar la secuencia
-    animarJugador();
-}
-
-// Función para calcular los resultados del tiebreak
-function calcularResultadosTiebreak(jugadores, dataEmpate) {
-    // Verificar si hay empate en los dados
-    const resultados = jugadores.map(j => j.resultadoDados);
-    const maxSuma = Math.max(...resultados.map(r => r.suma));
-    const ganadores = resultados.filter(r => r.suma === maxSuma);
-    
-    if (ganadores.length > 1) {
-        // Hay empate en los dados, volver a tirar
-        mostrarNotificacion('¡Empate en los dados! Volviendo a tirar...', 'info');
-        
-        // Limpiar resultados anteriores
-        jugadores.forEach(j => delete j.resultadoDados);
-        
-        // Reiniciar la animación
-        setTimeout(() => {
-            iniciarAnimacionSecuencialDados(jugadores, dataEmpate);
-        }, 2000);
-        
-        return;
-    }
-    
-    // Hay un ganador, mostrar resultados
-    const ganador = jugadores.find(j => j.resultadoDados.suma === maxSuma);
-    
-    const resultadoTiebreak = {
-        tiradas: jugadores.map(j => ({
-            jugadorId: j.jugador.id,
-            nombre: j.jugador.nombre,
-            dice1: j.resultadoDados.dado1,
-            dice2: j.resultadoDados.dado2
-        })),
-        ganador: { jugadorId: ganador.jugador.id }
-    };
-    
-    console.log('🎯 Resultado del tiebreak:', resultadoTiebreak);
-    manejarTiebreakResultado(resultadoTiebreak);
-}
+// El servidor maneja automáticamente el tiebreak, no necesitamos estas funciones
 
 function manejarTiebreakResultado(payload) {
     console.log('🎲 Procesando resultado del tiebreak:', payload);
+    
+    // Verificar si realmente hay empate (múltiples jugadores)
+    if (!payload.tiradas || payload.tiradas.length <= 1 || payload.sinEmpate) {
+        console.log('🎲 No hay empate real, no mostrar modal de tiebreak');
+        
+        // Si no hay empate, mostrar notificación y continuar
+        if (payload.sinEmpate) {
+            mostrarNotificacion('No hubo empate, continuando el juego...', 'info');
+            
+            // Cerrar inmediatamente el modal de bingo si está abierto
+            const modalBingo = document.getElementById('modalBingo');
+            if (modalBingo && !modalBingo.classList.contains('oculta')) {
+                modalBingo.classList.add('oculta');
+            }
+        }
+        
+        // Limpiar estado del tiebreak
+        limpiarEstadoTiebreak();
+        return;
+    }
+    
+    console.log('🎲 Empate real detectado, mostrando modal de tiebreak');
     
     const modal = document.getElementById('modalTiebreak');
     const lista = document.getElementById('tiebreakLista');
@@ -1076,6 +935,9 @@ function manejarTiebreakResultado(payload) {
         console.error('❌ Elementos del modal tiebreak no encontrados');
         return;
     }
+    
+    // Mostrar el modal de tiebreak
+    modal.classList.remove('oculta');
     
     // Ocultar la animación y mostrar los resultados
     animacion.style.display = 'none';
@@ -1091,30 +953,18 @@ function manejarTiebreakResultado(payload) {
             const card = document.createElement('div');
             card.className = 'dice-card';
             
-            // Verificar que los dados tengan valores válidos
-            if (typeof t.dice1 !== 'number' || typeof t.dice2 !== 'number' || 
-                t.dice1 < 1 || t.dice1 > 6 || t.dice2 < 1 || t.dice2 > 6) {
-                console.error('❌ Valores de dados inválidos:', t);
-                return;
-            }
-            
-            // Crear los dos dados con los números específicos
-            const dado1HTML = crearDadoHTML(t.dice1);
-            const dado2HTML = crearDadoHTML(t.dice2);
-            const suma = t.dice1 + t.dice2;
+            // El servidor envía solo un dado por jugador, no dos
+            const roll = t.roll;
             const esGanador = payload.ganador && payload.ganador.jugadorId === t.jugadorId;
             
             card.innerHTML = `
                 <div class='name'>${t.nombre}</div>
-                <div class='dice-pair-result'>
+                <div class='dice-result'>
                     <div class='dice ${esGanador ? 'winner' : ''}'>
-                        ${dado1HTML}
-                    </div>
-                    <div class='dice ${esGanador ? 'winner' : ''}'>
-                        ${dado2HTML}
+                        ${crearDadoHTML(roll)}
                     </div>
                 </div>
-                <div class='dice-sum'>Suma: ${suma}</div>
+                <div class='dice-value'>Valor: ${roll}</div>
                 ${esGanador ? '<div class="winner-badge">🏆 ¡GANADOR!</div>' : ''}
             `;
             
@@ -1128,35 +978,12 @@ function manejarTiebreakResultado(payload) {
         }, index * 300); // Entrada escalonada más lenta
     });
     
-    // Mostrar el modal si no está visible
-    if (modal.classList.contains('oculta')) {
-        modal.classList.remove('oculta');
-    }
-    
-    // NO cerrar automáticamente - esperar a que el usuario vea los resultados
-    // El modal se cerrará solo cuando se reanude el juego o se muestre el ganador
-    
-    // Si es tabla llena, mostrar modal de ganadores finales después de un delay
-    if (salaActual && salaActual.ganadores) {
-        const hayTablaLlena = salaActual.ganadores.some(g => g.patron === 'tablaLlena');
-        if (hayTablaLlena) {
-            console.log('🏆 Programando modal de ganadores finales para tabla llena');
-            setTimeout(() => {
-                // Cerrar modal de tiebreak
-                modal.classList.add('oculta');
-                // Limpiar estado del tiebreak
-                limpiarEstadoTiebreak();
-                // Mostrar modal de ganadores finales
-                mostrarModalGanadoresFinal();
-            }, 8000); // 8 segundos para que vean los resultados
-        } else {
-            console.log('🎯 Reanudando juego después del tiebreak');
-            // Reanudar el juego automáticamente
-            setTimeout(() => {
-                reanudarJuegoDespuesTiebreak();
-            }, 8000); // 8 segundos para que vean los resultados
-        }
-    }
+    // El servidor reanuda automáticamente después de 5 segundos
+    // Solo cerrar el modal cuando se reanude el juego
+    setTimeout(() => {
+        modal.classList.add('oculta');
+        limpiarEstadoTiebreak();
+    }, 5000);
 }
 
 // Función para limpiar completamente el estado del tiebreak
@@ -1215,62 +1042,9 @@ function mostrarIndicadorPausaEmpate(mostrar) {
     }
 }
 
-// Función para verificar que el juego esté realmente activo después del tiebreak
-function verificarEstadoJuegoDespuesTiebreak() {
-    console.log('🔍 Verificando estado del juego después del tiebreak...');
-    
-    // Verificar que el juego esté activo
-    if (salaActual && salaActual.juegoActivo) {
-        console.log('✅ Juego reanudado correctamente después del tiebreak');
-        mostrarNotificacion('¡Juego reanudado exitosamente!', 'exito');
-    } else {
-        console.log('❌ Juego no se reanudó correctamente después del tiebreak');
-        mostrarNotificacion('Error: El juego no se reanudó correctamente', 'error');
-        
-        // Intentar reanudar nuevamente si es anfitrión
-        if (salaActual && jugadorActual && jugadorActual.esAnfitrion) {
-            setTimeout(() => {
-                console.log('🔄 Reintentando reanudar el juego...');
-                socket.emit('reanudarJuego', { 
-                    salaId: salaActual.id,
-                    motivo: 'tiebreak'
-                });
-            }, 2000);
-        }
-    }
-}
+// El servidor maneja automáticamente el tiebreak, no necesitamos esta función
 
-// Función para reanudar el juego después del tiebreak
-function reanudarJuegoDespuesTiebreak() {
-    console.log('🎯 Reanudando juego después del tiebreak...');
-    
-    // Cerrar el modal de tiebreak
-    const modal = document.getElementById('modalTiebreak');
-    if (modal) {
-        modal.classList.add('oculta');
-    }
-    
-    // Limpiar completamente el estado del tiebreak
-    limpiarEstadoTiebreak();
-    
-    // Reanudar el juego automáticamente
-    if (salaActual && jugadorActual && jugadorActual.esAnfitrion) {
-        console.log('🎯 Anfitrión reanudando juego automáticamente');
-        socket.emit('reanudarJuego', { 
-            salaId: salaActual.id,
-            motivo: 'tiebreak'
-        });
-        
-        // Agregar evento al historial
-        agregarEventoHistorial('🎲 Desempate completado - Juego reanudado');
-        
-        // Mostrar notificación
-        mostrarNotificacion('¡Desempate completado! El juego se reanuda automáticamente', 'exito');
-    } else {
-        // Si no es anfitrión, solo mostrar notificación
-        mostrarNotificacion('¡Desempate completado! El anfitrión reanudará el juego', 'info');
-    }
-}
+// El servidor maneja automáticamente el tiebreak, no necesitamos esta función
 
 // Función para crear el HTML del dado con el número específico
 function crearDadoHTML(numero) {
@@ -1451,11 +1225,8 @@ function manejarEstadoJuego(data) {
         // Si el juego se reanuda después del tiebreak, mostrar notificación especial
         if (data.por && data.por.includes('tiebreak')) {
             mostrarNotificacion('¡Juego reanudado después del desempate!', 'exito');
-            
-            // Verificar que el juego esté realmente activo
-            setTimeout(() => {
-                verificarEstadoJuegoDespuesTiebreak();
-            }, 1000);
+        } else if (data.por && data.por.includes('sinEmpate')) {
+            mostrarNotificacion('¡Juego reanudado! No hubo empate', 'info');
         }
     }
 }
@@ -2882,61 +2653,4 @@ function agregarEventoHistorialOffline(texto) {
     while (lista.childElementCount>20) lista.lastElementChild.remove();
 }
 
-// Función para verificar si hay empate entre jugadores
-function verificarEmpate(ganador) {
-    if (!salaActual || !salaActual.ganadores) return null;
-    
-    // Buscar jugadores que ganaron el mismo patrón con el mismo número
-    const empates = salaActual.ganadores.filter(g => 
-        g.patron === ganador.patron && 
-        g.numeroGanador === ganador.numeroGanador &&
-        g.jugador.id !== ganador.jugador.id
-    );
-    
-    // Si hay empate, retornar los datos del empate
-    if (empates.length > 0) {
-        // Crear array único de jugadores empatados (sin duplicados)
-        const jugadoresEmpatados = [ganador];
-        empates.forEach(empate => {
-            if (!jugadoresEmpatados.some(j => j.jugador.id === empate.jugador.id)) {
-                jugadoresEmpatados.push(empate);
-            }
-        });
-        
-        const dataEmpate = {
-            empate: true,
-            jugadoresEmpatados: jugadoresEmpatados,
-            patron: ganador.patron,
-            numeroGanador: ganador.numeroGanador
-        };
-        
-        console.log(`🎲 Empate detectado entre ${jugadoresEmpatados.length} jugadores en ${ganador.patron} con número ${ganador.numeroGanador}`);
-        console.log(`🎲 Jugadores empatados:`, jugadoresEmpatados.map(j => j.jugador.nombre));
-        
-        return dataEmpate;
-    }
-    
-    return null; // No hay empate
-}
-
-// Función para iniciar el tiebreak
-function iniciarTiebreak(dataEmpate) {
-    console.log('🎯 Iniciando tiebreak...', dataEmpate);
-    
-    // Cerrar el modal de bingo si está abierto
-    const modalBingo = document.getElementById('modalBingo');
-    if (modalBingo && !modalBingo.classList.contains('oculta')) {
-        console.log('🔒 Cerrando modal de bingo para mostrar tiebreak');
-        modalBingo.classList.add('oculta');
-    }
-    
-    // Limpiar resultados anteriores
-    if (window.jugadoresTiebreak) {
-        window.jugadoresTiebreak.forEach(j => delete j.resultadoDados);
-    }
-    
-    // Iniciar el tiebreak con animación secuencial
-    setTimeout(() => {
-        manejarTiebreakIniciado(dataEmpate);
-    }, 1000); // Delay de 1 segundo para asegurar que el modal se cierre
-}
+// El servidor maneja automáticamente el tiebreak, no necesitamos estas funciones

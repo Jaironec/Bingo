@@ -194,10 +194,13 @@ function resolverTiebreak(salaId) {
 
   // Emit winners (con desempate por patrón si hay varios con mismo número)
   const winnersToEmit = [];
+  let huboEmpate = false;
+  
   candidatosPorPatron.forEach((lista, patron) => {
     if (lista.length === 1) {
       winnersToEmit.push({ ...lista[0], numeroGanador: String(numero) });
     } else if (lista.length > 1) {
+      huboEmpate = true;
       // Desempate por dado 1-6; si empatan de nuevo, mayor gana; repetir hasta romper empate razonable
       const tiradas = lista.map(l => ({ jugador: l.jugador, patron, resultado: l.resultado, roll: Math.floor(Math.random()*6)+1 }));
       // determinar mayor
@@ -215,6 +218,17 @@ function resolverTiebreak(salaId) {
       winnersToEmit.push({ jugador: ganador.jugador, patron, resultado: lista.find(l => l.jugador.id === ganador.jugador.id).resultado, numeroGanador: String(numero) });
     }
   });
+  
+  // Si no hubo empate, emitir resultado sin tiebreak para que el cliente sepa que puede continuar
+  if (!huboEmpate) {
+    io.to(salaId).emit('tiebreakResultado', { 
+      patron: null, 
+      numero: numero, 
+      tiradas: [], 
+      ganador: null,
+      sinEmpate: true 
+    });
+  }
 
   // Registrar y emitir ganadores; respetar fin por tabla llena
   let huboTablaLlena = false;
@@ -244,12 +258,21 @@ function resolverTiebreak(salaId) {
   } else {
     // Marcar este número como resuelto para evitar nuevas ventanas para este mismo número
     sala._tiebreakResueltoParaNumero = numero;
-    // Reanudar después de 5s
-    setTimeout(() => {
-      if (!sala) return;
+    
+    if (huboEmpate) {
+      // Si hubo empate, reanudar después de 5s para dar tiempo a ver el modal
+      setTimeout(() => {
+        if (!sala) return;
+        sala.juegoActivo = true;
+        io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'tiebreak' });
+        io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+      }, 5000);
+    } else {
+      // Si no hubo empate, reanudar inmediatamente
       sala.juegoActivo = true;
+      io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'sinEmpate' });
       io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
-    }, 5000);
+    }
   }
 }
 
@@ -268,7 +291,7 @@ io.on('connection', (socket) => {
     // Pausar juego mientras se espera a otros posibles ganadores
     sala.juegoActivo = false;
     const anfitrion = sala.jugadores.find(j => j.id === sala.anfitrion);
-    io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: anfitrion?.nombre || 'sistema' });
+    io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: 'empate' });
     if (sala._tiebreak && sala._tiebreak.activo) {
       // agregar participante si no está
       const existe = sala._tiebreak.participantes.some(p => p.id === socket.id);
