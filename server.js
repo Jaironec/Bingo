@@ -610,7 +610,14 @@ io.on('connection', (socket) => {
     if (!sala || sala.anfitrion !== socket.id) return;
     sala.juegoActivo = false;
     const anfitrion = sala.jugadores.find(j => j.id === socket.id);
-    io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: anfitrion?.nombre || 'anfitrión' });
+    
+    // Determinar el motivo de la pausa
+    let motivo = 'anfitrión';
+    if (data.motivo === 'empate') {
+      motivo = 'empate';
+    }
+    
+    io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: motivo });
   });
 
   // Reanudar juego (solo anfitrión)
@@ -619,7 +626,14 @@ io.on('connection', (socket) => {
     if (!sala || sala.anfitrion !== socket.id) return;
     sala.juegoActivo = true;
     const anfitrion = sala.jugadores.find(j => j.id === socket.id);
-    io.to(data.salaId).emit('estadoJuego', { estado: 'reanudado', por: anfitrion?.nombre || 'anfitrión' });
+    
+    // Determinar el motivo de la reanudación
+    let motivo = 'anfitrión';
+    if (data.motivo === 'tiebreak') {
+      motivo = 'tiebreak';
+    }
+    
+    io.to(data.salaId).emit('estadoJuego', { estado: 'reanudado', por: motivo });
   });
   
   // Desconexión

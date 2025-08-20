@@ -291,6 +291,10 @@
                             <div id="listaJugadores" class="lista-jugadores"></div>
                         </div>
                         
+                        <div id="panelPatronesDisponibles" class="patrones-disponibles">
+                            <!-- Los patrones se cargarán dinámicamente -->
+                        </div>
+                        
                         <div class="historial">
                             <h3>Historial</h3>
                             <div id="historialEventos" class="lista-historial"></div>
@@ -362,6 +366,27 @@
                 <div class="modal-footer tiebreak-footer">
                     <button id="btnCerrarTiebreak" class="btn btn-primary btn-tiebreak">
                         <i class="fas fa-check"></i> Continuar
+                    </button>
+                    <button id="btnCerrarTiebreakManual" class="btn btn-secondary btn-tiebreak">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de ganadores finales -->
+        <div id="modalGanadoresFinal" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-trophy"></i> ¡Juego Terminado!</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Estos son todos los ganadores de esta partida:</p>
+                    <div id="ganadoresFinales" class="ganadores-finales"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCerrarGanadoresFinal" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Entendido
                     </button>
                 </div>
             </div>
@@ -493,16 +518,26 @@
                             <li>Elige tu tabla de bingo entre las disponibles.</li>
                             <li>Se cantan números automáticamente; márcalos si están en tu tabla.</li>
                             <li>Cuando completes un patrón, declara Bingo con el botón del patrón.</li>
+                            <li>Si hay empate, se realizará un desempate automático con dados.</li>
                         </ol>
                     </div>
                     <div class="tutorial-section">
                         <h4>Modos de bingo</h4>
                         <ul class="tutorial-modos">
-                            <li><span class="modo-icono"><i class="fas fa-minus"></i></span><strong>Línea:</strong> completa una fila o columna. (No incluye diagonales)</li>
+                            <li><span class="modo-icono"><i class="fas fa-minus"></i></span><strong>Línea:</strong> completa una fila o columna (horizontal o vertical).</li>
                             <li><span class="modo-icono"><i class="fas fa-border-all"></i></span><strong>Cuatro Esquinas:</strong> marca las cuatro esquinas de tu tabla.</li>
-                            <li><span class="modo-icono"><i class="fas fa-times"></i></span><strong>LOCO (5 números):</strong> marca exactamente 5 números cualesquiera.</li>
+                            <li><span class="modo-icono"><i class="fas fa-times"></i></span><strong>LOCO (5 números):</strong> marca exactamente 5 números reales (la estrella FREE no cuenta).</li>
                             <li><span class="modo-icono"><i class="fas fa-slash"></i></span><strong>Machetaso:</strong> completa una diagonal que pase por el centro de la tabla (principal o secundaria).</li>
                             <li><span class="modo-icono"><i class="fas fa-square"></i></span><strong>Tabla Llena:</strong> marca todos los números de tu tabla.</li>
+                        </ul>
+                    </div>
+                    <div class="tutorial-section">
+                        <h4>Características especiales</h4>
+                        <ul class="tutorial-caracteristicas">
+                            <li><i class="fas fa-dice"></i> <strong>Desempate automático:</strong> Si hay empate, se lanzan dados para decidir el ganador.</li>
+                            <li><i class="fas fa-trophy"></i> <strong>Panel de modos disponibles:</strong> Ve qué patrones aún no han sido ganados.</li>
+                            <li><i class="fas fa-star"></i> <strong>Estrella FREE:</strong> Se marca automáticamente y cuenta para todos los patrones excepto LOCO.</li>
+                            <li><i class="fas fa-users"></i> <strong>Verificación de tablas:</strong> Todos deben seleccionar tabla antes de iniciar.</li>
                         </ul>
                     </div>
                     <label class="no-mostrar">
