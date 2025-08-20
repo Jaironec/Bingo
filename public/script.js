@@ -10,6 +10,10 @@ let accionPendiente = null; // 'crearSala' o 'unirseSala'
 let ultimaNotificacion = { texto: '', tiempo: 0 };
 let ultimoEventoHist = { texto: '', tiempo: 0 };
 
+// Sistema de notificaciones inteligente
+let notificacionesActivas = new Map(); // Para agrupar notificaciones similares
+let contadorNotificaciones = 0;
+
 // Cooldown para declarar bingo
 let ultimoBingoClickMs = 0;
 const BINGO_COOLDOWN_MS = 1500;
@@ -107,9 +111,12 @@ function inicializarSocket() {
 
 // Configurar event listeners
 function configurarEventListeners() {
-    // Botones de la pantalla de inicio
-    document.getElementById('btnCrearSala').addEventListener('click', crearSala);
-    document.getElementById('btnUnirseSala').addEventListener('click', unirseSala);
+    // Botón principal de inicio
+    document.getElementById('btnJugar').addEventListener('click', irSeleccionModo);
+    
+    // Botones de la pantalla de selección de modo
+    document.getElementById('modoCrearSala').addEventListener('click', crearSala);
+    document.getElementById('modoUnirseSala').addEventListener('click', unirseSala);
     
     // Botones de configuración
     document.getElementById('btnIniciarJuego').addEventListener('click', iniciarJuego);
@@ -154,6 +161,12 @@ function configurarEventListeners() {
             unirseSala();
         }
     });
+    
+    // Botón para limpiar notificaciones
+    const btnLimpiarNotificaciones = document.getElementById('btnLimpiarNotificaciones');
+    if (btnLimpiarNotificaciones) {
+        btnLimpiarNotificaciones.addEventListener('click', limpiarNotificaciones);
+    }
 }
 
 // Funciones de navegación
@@ -162,6 +175,10 @@ function mostrarPantalla(pantallaId) {
         pantalla.classList.add('oculta');
     });
     document.getElementById(pantallaId).classList.remove('oculta');
+}
+
+function irSeleccionModo() {
+    mostrarPantalla('pantallaSeleccionModo');
 }
 
 // Funciones de Socket.IO
@@ -413,18 +430,40 @@ function manejarNumeroMarcado(data) {
 }
 
 function manejarBingoDeclarado(ganador) {
-    mostrarModalBingo(ganador);
+    // Verificar si ya hay un modal abierto para este jugador y número
+    const modalAbierto = document.getElementById('modalBingo');
+    const esMismoJugadorMismoNumero = modalAbierto && 
+        !modalAbierto.classList.contains('oculta') && 
+        modalAbierto.dataset.jugadorId === ganador.jugador.id &&
+        modalAbierto.dataset.numeroGanador === ganador.numeroGanador;
+    
+    if (esMismoJugadorMismoNumero) {
+        // Agregar este patrón al modal existente
+        agregarPatronGanadoAlModal(ganador);
+    } else {
+        // Mostrar nuevo modal
+        mostrarModalBingo(ganador);
+    }
+    
     if (salaActual) {
         salaActual.ganadores = salaActual.ganadores || [];
         const yaExiste = salaActual.ganadores.some(g => g.jugador && g.jugador.id === ganador.jugador.id && g.patron === ganador.patron);
         if (!yaExiste) salaActual.ganadores.push(ganador);
     }
+    
     // Historial
     agregarEventoHistorial(`🏆 ${ganador.jugador.nombre} ganó ${obtenerNombrePatron(ganador.patron)}`);
-    mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${ganador.resultado.tipo}!`, 'exito');
+    mostrarNotificacion(`¡${ganador.jugador.nombre} ganó con ${obtenerNombrePatron(ganador.patron)}!`, 'exito');
     playBingo();
+    
+    // Deshabilitar botón de bingo para este patrón
     const btn = document.querySelector(`.btn-bingo[data-patron="${ganador.patron}"]`);
     if (btn) btn.disabled = true;
+    
+    // Verificar si hay empate (múltiples jugadores con el mismo patrón y número)
+    verificarEmpate(ganador);
+    
+    // Solo iniciar temporizador si no es tabla llena
     if (ganador.patron !== 'tablaLlena') {
         iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
@@ -434,28 +473,135 @@ function manejarBingoDeclarado(ganador) {
 }
 
 function manejarTiebreakIniciado(data) {
-    mostrarNotificacion('Posible empate. Esperando a otros jugadores…', 'info');
+    // Verificar si realmente hay empate (múltiples jugadores con el mismo patrón y número)
+    if (!data || !data.empate || !data.jugadoresEmpatados || data.jugadoresEmpatados.length < 2) {
+        console.log('No hay empate real, no se muestra tiebreak');
+        return;
+    }
+    
+    mostrarNotificacion(`¡Empate detectado entre ${data.jugadoresEmpatados.length} jugadores! Iniciando desempate...`, 'info');
+    
+    // Mostrar el modal de tiebreak
+    const modal = document.getElementById('modalTiebreak');
+    const mensaje = document.getElementById('tiebreakMensaje');
+    const resultados = document.getElementById('tiebreakResults');
+    const animacion = document.getElementById('tiebreakAnimation');
+    
+    if (modal && mensaje && resultados && animacion) {
+        modal.classList.remove('oculta');
+        
+        // Mostrar información del empate
+        const infoEmpate = document.getElementById('tiebreakInfo');
+        if (infoEmpate) {
+            infoEmpate.innerHTML = `
+                <p><i class="fas fa-info-circle"></i> Empate en: <strong>${obtenerNombrePatron(data.patron)}</strong></p>
+                <p><i class="fas fa-dice"></i> Número ganador: <strong>${data.numeroGanador}</strong></p>
+                <p><i class="fas fa-users"></i> Jugadores empatados: <strong>${data.jugadoresEmpatados.map(j => j.jugador.nombre).join(', ')}</strong></p>
+            `;
+        }
+        
+        mensaje.textContent = `¡Empate entre ${data.jugadoresEmpatados.length} jugadores! Preparando el desempate...`;
+        resultados.style.display = 'none';
+        animacion.style.display = 'block';
+        
+        // Simular el proceso de tiro de dados con mensajes progresivos
+        setTimeout(() => {
+            mensaje.textContent = 'Tirando los dados...';
+        }, 1500);
+        
+        setTimeout(() => {
+            mensaje.textContent = 'Calculando resultados...';
+        }, 3000);
+    }
 }
 
 function manejarTiebreakResultado(payload) {
     const modal = document.getElementById('modalTiebreak');
     const lista = document.getElementById('tiebreakLista');
     const msg = document.getElementById('tiebreakMensaje');
-    if (!modal || !lista || !msg) return;
+    const resultados = document.getElementById('tiebreakResults');
+    const animacion = document.getElementById('tiebreakAnimation');
+    
+    if (!modal || !lista || !msg || !resultados || !animacion) return;
+    
+    // Ocultar la animación y mostrar los resultados
+    animacion.style.display = 'none';
+    resultados.style.display = 'block';
+    
+    // Mensaje final
+    msg.textContent = `¡Desempate completado!`;
+    
+    // Crear las tarjetas de resultados con animación escalonada
     lista.innerHTML = '';
-    msg.textContent = `Desempate por ${obtenerNombrePatron(payload.patron)} (número ${payload.numero}).`;
-    payload.tiradas.forEach(t => {
-        const card = document.createElement('div');
-        card.className = 'dice-card';
-        card.innerHTML = `<div class='name'>${t.nombre}</div><div class='dice'>${t.roll}</div>`;
-        if (payload.ganador && payload.ganador.jugadorId === t.jugadorId) {
-            card.querySelector('.dice').classList.add('winner');
-        }
-        lista.appendChild(card);
+    payload.tiradas.forEach((t, index) => {
+        setTimeout(() => {
+            const card = document.createElement('div');
+            card.className = 'dice-card';
+            
+            // Crear los dos dados con los números específicos
+            const dado1HTML = crearDadoHTML(t.dice1);
+            const dado2HTML = crearDadoHTML(t.dice2);
+            const suma = t.dice1 + t.dice2;
+            const esGanador = payload.ganador && payload.ganador.jugadorId === t.jugadorId;
+            
+            card.innerHTML = `
+                <div class='name'>${t.nombre}</div>
+                <div class='dice-pair-result'>
+                    <div class='dice ${esGanador ? 'winner' : ''}'>
+                        ${dado1HTML}
+                    </div>
+                    <div class='dice ${esGanador ? 'winner' : ''}'>
+                        ${dado2HTML}
+                    </div>
+                </div>
+                <div class='dice-sum'>Suma: ${suma}</div>
+                ${esGanador ? '<div class="winner-badge">🏆 Ganador</div>' : ''}
+            `;
+            
+            lista.appendChild(card);
+            
+            // Animar la entrada de la tarjeta
+            setTimeout(() => {
+                card.style.animation = 'slideInUp 0.6s ease forwards';
+            }, 100);
+            
+        }, index * 300); // Entrada escalonada más lenta
     });
-    modal.classList.remove('oculta');
+    
+    // Mostrar el modal si no está visible
+    if (modal.classList.contains('oculta')) {
+        modal.classList.remove('oculta');
+    }
+    
+    // Configurar el botón de cerrar
     const btn = document.getElementById('btnCerrarTiebreak');
-    if (btn) btn.onclick = () => modal.classList.add('oculta');
+    if (btn) {
+        btn.onclick = () => {
+            modal.classList.add('oculta');
+            // Restaurar la animación para la próxima vez
+            setTimeout(() => {
+                animacion.style.display = 'block';
+                resultados.style.display = 'none';
+                // Limpiar las tarjetas
+                lista.innerHTML = '';
+            }, 300);
+        };
+    }
+}
+
+// Función para crear el HTML del dado con el número específico
+function crearDadoHTML(numero) {
+    const iconosDado = [
+        'fas fa-dice-one',
+        'fas fa-dice-two', 
+        'fas fa-dice-three',
+        'fas fa-dice-four',
+        'fas fa-dice-five',
+        'fas fa-dice-six'
+    ];
+    
+    const icono = iconosDado[numero - 1] || 'fas fa-dice-one';
+    return `<i class="${icono}"></i>`;
 }
 
 function iniciarCuentaRegresivaFinal(segundos) {
@@ -813,7 +959,26 @@ function mostrarModalBingo(ganador) {
     const mensaje = document.getElementById('mensajeBingo');
     const detalles = document.getElementById('detallesBingo');
     
+    // Guardar información del jugador y número para identificar ganadores múltiples
+    modal.dataset.jugadorId = ganador.jugador.id;
+    modal.dataset.numeroGanador = ganador.numeroGanador;
+    
+    // Crear contenedor para patrones ganados
+    const patronesGanados = document.createElement('div');
+    patronesGanados.id = 'patronesGanados';
+    patronesGanados.className = 'patrones-ganados';
+    
+    // Agregar el primer patrón ganado
+    const primerPatron = crearElementoPatronGanado(ganador);
+    patronesGanados.appendChild(primerPatron);
+    
     mensaje.textContent = `¡${ganador.jugador.nombre} ha ganado!`;
+    
+    // Agregar contador de patrones ganados
+    const contadorPatrones = document.createElement('div');
+    contadorPatrones.className = 'contador-patrones';
+    contadorPatrones.innerHTML = `<span class="badge-contador">1 patrón ganado</span>`;
+    mensaje.appendChild(contadorPatrones);
     
     let tablaHTML = '';
     if (ganador.jugador.tablaSeleccionada) {
@@ -824,6 +989,7 @@ function mostrarModalBingo(ganador) {
                     ${ganador.jugador.tablaSeleccionada.numeros.map((fila, filaIndex) => 
                         fila.map((celda, colIndex) => {
                             const esMarcado = ganador.jugador.numerosMarcados.includes(celda.numero) || celda.esLibre;
+                            // Verificar si esta celda es ganadora en este patrón
                             const esGanador = esGanadorEnPatron(ganador.patron, ganador.resultado, filaIndex, colIndex, esMarcado);
                             const base = celda.esLibre ? '<span class="numero free"><i class=\"fas fa-star\"></i>' : `<span class=\"numero${esGanador ? ' ganador' : ''}\">${celda.numero}`;
                             return `${base}${esMarcado ? '' : ''}</span>`;
@@ -835,42 +1001,199 @@ function mostrarModalBingo(ganador) {
     }
     
     detalles.innerHTML = `
-        <p><strong>Patrón:</strong> ${ganador.resultado.tipo}</p>
+        <div class="patrones-ganados-container">
+            <h4>Patrones Ganados:</h4>
+            <div id="patronesGanados" class="patrones-ganados">
+                ${primerPatron.outerHTML}
+            </div>
+        </div>
         <p><strong>Número ganador:</strong> ${ganador.numeroGanador}</p>
         ${tablaHTML}
     `;
+    
+    // Aplicar modo compacto si es necesario
+    aplicarModoCompacto(modal);
     
     modal.classList.remove('oculta');
 }
 
 function esGanadorEnPatron(patron, resultado, filaIndex, colIndex, esMarcado) {
     if (!esMarcado) return false;
+    
     switch (patron) {
         case 'linea':
+            // Línea horizontal
             if (resultado.fila && (resultado.fila - 1) === filaIndex) return true;
+            // Línea vertical
             if (resultado.columna && (resultado.columna - 1) === colIndex) return true;
             break;
+            
         case 'cuatroEsquinas':
+            // Solo las 4 esquinas
             if ((filaIndex === 0 || filaIndex === 4) && (colIndex === 0 || colIndex === 4)) return true;
             break;
+            
         case 'loco':
+            // Cualquier celda marcada (5 números)
             return true;
+            
         case 'tablaLlena':
+            // Toda la tabla
             return true;
+            
         case 'machetaso':
-            // Solo resaltar la diagonal completa que ganó (usar info de resultado.diagonal si existe)
-            const esPrincipal = (resultado && resultado.diagonal === 'principal');
-            const esSecundaria = (resultado && resultado.diagonal === 'secundaria');
-            if (esPrincipal && filaIndex === colIndex) return true;
-            if (esSecundaria && (filaIndex + colIndex === 4)) return true;
-            // Si no viene detalle, por defecto no resaltar (evitar marcar ambas)
+            // Diagonal principal (esquina superior izquierda a inferior derecha)
+            if (resultado.diagonal === 'principal' && filaIndex === colIndex) return true;
+            // Diagonal secundaria (esquina superior derecha a inferior izquierda)
+            if (resultado.diagonal === 'secundaria' && (filaIndex + colIndex === 4)) return true;
+            // Si no hay información de diagonal específica, no resaltar
             return false;
     }
+    
     return false;
 }
 
+function crearElementoPatronGanado(ganador) {
+    const patronDiv = document.createElement('div');
+    patronDiv.className = 'patron-ganado';
+    patronDiv.dataset.patron = ganador.patron;
+    
+    const icono = obtenerIconoPatron(ganador.patron);
+    const nombrePatron = obtenerNombrePatron(ganador.patron);
+    
+    patronDiv.innerHTML = `
+        <div class="patron-icono">${icono}</div>
+        <div class="patron-info">
+            <div class="patron-nombre">${nombrePatron}</div>
+            <div class="patron-detalle">${ganador.resultado.tipo}</div>
+        </div>
+    `;
+    
+    return patronDiv;
+}
+
+function agregarPatronGanadoAlModal(ganador) {
+    const patronesGanados = document.getElementById('patronesGanados');
+    if (!patronesGanados) return;
+    
+    // Verificar si este patrón ya está mostrado
+    const patronExistente = patronesGanados.querySelector(`[data-patron="${ganador.patron}"]`);
+    if (patronExistente) return;
+    
+    // Crear y agregar el nuevo patrón
+    const nuevoPatron = crearElementoPatronGanado(ganador);
+    patronesGanados.appendChild(nuevoPatron);
+    
+    // Actualizar la tabla para mostrar todos los patrones ganados
+    actualizarTablaConTodosLosPatrones(ganador.jugador.id, ganador.numeroGanador);
+    
+    // Actualizar el contador de patrones
+    actualizarContadorPatrones();
+    
+    // Mostrar notificación de patrón adicional
+    mostrarNotificacion(`¡${ganador.jugador.nombre} también ganó ${obtenerNombrePatron(ganador.patron)}!`, 'exito');
+}
+
+function actualizarTablaConTodosLosPatrones(jugadorId, numeroGanador) {
+    const modal = document.getElementById('modalBingo');
+    if (!modal || modal.classList.contains('oculta')) return;
+    
+    // Obtener todos los patrones ganados por este jugador con este número
+    const patronesGanados = Array.from(modal.querySelectorAll('.patron-ganado')).map(p => p.dataset.patron);
+    
+    // Buscar la tabla del ganador
+    const tablaGanador = salaActual?.jugadores?.find(j => j.id === jugadorId)?.tablaSeleccionada;
+    if (!tablaGanador) return;
+    
+    // Actualizar la tabla para mostrar todos los patrones ganados
+    const tablaBingoMini = modal.querySelector('.tabla-bingo-mini');
+    if (!tablaBingoMini) return;
+    
+    tablaBingoMini.innerHTML = tablaGanador.numeros.map((fila, filaIndex) => 
+        fila.map((celda, colIndex) => {
+            const esMarcado = numerosMarcados.includes(celda.numero) || celda.esLibre;
+            // Verificar si esta celda es ganadora en ALGÚN patrón ganado
+            let esGanador = false;
+            for (const patron of patronesGanados) {
+                // Buscar el resultado específico de este patrón en los ganadores
+                const ganadorPatron = salaActual?.ganadores?.find(g => 
+                    g.jugador.id === jugadorId && 
+                    g.patron === patron && 
+                    g.numeroGanador === numeroGanador
+                );
+                
+                if (ganadorPatron && esGanadorEnPatron(patron, ganadorPatron.resultado, filaIndex, colIndex, esMarcado)) {
+                    esGanador = true;
+                    break;
+                }
+            }
+            
+            const base = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i>' : `<span class="numero${esGanador ? ' ganador' : ''}">${celda.numero}`;
+            return `${base}${esMarcado ? '' : ''}</span>`;
+        }).join('')
+    ).join('');
+}
+
+function actualizarContadorPatrones() {
+    const modal = document.getElementById('modalBingo');
+    if (!modal || modal.classList.contains('oculta')) return;
+    
+    const contadorPatrones = modal.querySelector('.contador-patrones');
+    if (!contadorPatrones) return;
+    
+    const totalPatrones = modal.querySelectorAll('.patron-ganado').length;
+    const texto = totalPatrones === 1 ? '1 patrón ganado' : `${totalPatrones} patrones ganados`;
+    
+    contadorPatrones.innerHTML = `<span class="badge-contador">${texto}</span>`;
+    
+    // Aplicar modo compacto si hay muchos patrones
+    aplicarModoCompacto(modal);
+}
+
+// Función para aplicar modo compacto cuando hay muchos patrones
+function aplicarModoCompacto(modal) {
+    if (!modal) return;
+    
+    const totalPatrones = modal.querySelectorAll('.patron-ganado').length;
+    const totalJugadores = new Set(Array.from(modal.querySelectorAll('.patron-ganado')).map(p => p.dataset.jugadorId)).size;
+    
+    // Aplicar modo compacto si hay más de 3 patrones o más de 1 jugador
+    if (totalPatrones > 3 || totalJugadores > 1) {
+        modal.classList.add('modal-compacto');
+    } else {
+        modal.classList.remove('modal-compacto');
+    }
+    
+    // Aplicar clase para muchos patrones si hay más de 5
+    const contenedorPatrones = modal.querySelector('.patrones-ganados-container');
+    if (contenedorPatrones) {
+        if (totalPatrones > 5) {
+            contenedorPatrones.classList.add('muchos-patrones');
+        } else {
+            contenedorPatrones.classList.remove('muchos-patrones');
+        }
+    }
+}
+
+function obtenerResultadoPatron(patron) {
+    // Buscar el resultado del patrón en los ganadores de la sala
+    const ganador = salaActual?.ganadores?.find(g => g.patron === patron);
+    return ganador?.resultado || {};
+}
+
 function cerrarModal() {
-    document.getElementById('modalBingo').classList.add('oculta');
+    const modal = document.getElementById('modalBingo');
+    modal.classList.add('oculta');
+    
+    // Limpiar datos del modal para la próxima vez
+    delete modal.dataset.jugadorId;
+    delete modal.dataset.numeroGanador;
+    
+    // Limpiar contenedor de patrones ganados
+    const patronesGanados = document.getElementById('patronesGanados');
+    if (patronesGanados) {
+        patronesGanados.innerHTML = '';
+    }
 }
 
 // Modal salir
@@ -980,35 +1303,130 @@ function cancelarNombre() {
 
 function mostrarNotificacion(mensaje, tipo = 'info') {
     const ahora = Date.now();
-    // Evitar spam del mismo mensaje en menos de 1.5s
-    if (ultimaNotificacion.texto === mensaje && (ahora - ultimaNotificacion.tiempo) < 1500) {
+    
+    // Sistema anti-spam más inteligente
+    const esMismoMensaje = ultimaNotificacion.texto === mensaje;
+    const tiempoDesdeUltima = ahora - ultimaNotificacion.tiempo;
+    
+    // Evitar spam del mismo mensaje
+    if (esMismoMensaje && tiempoDesdeUltima < 2000) {
         return;
     }
+    
+    // Para mensajes de éxito, ser más estrictos
+    if (tipo === 'exito' && esMismoMensaje && tiempoDesdeUltima < 3000) {
+        return;
+    }
+    
+    // Para mensajes de info, ser más permisivos pero limitar cantidad
+    if (tipo === 'info' && esMismoMensaje && tiempoDesdeUltima < 1500) {
+        return;
+    }
+    
     ultimaNotificacion = { texto: mensaje, tiempo: ahora };
 
     const notificaciones = document.getElementById('notificaciones');
+    
+    // Limitar a máximo 2 notificaciones visibles para ocupar menos espacio
+    const notificacionesExistentes = notificaciones.querySelectorAll('.notificacion');
+    if (notificacionesExistentes.length >= 2) {
+        // Remover la más antigua
+        notificacionesExistentes[0].remove();
+    }
+    
     const notificacion = document.createElement('div');
     notificacion.className = `notificacion ${tipo}`;
     notificacion.textContent = mensaje;
     
+    // Agregar con animación suave
+    notificacion.style.opacity = '0';
+    notificacion.style.transform = 'translateX(100%)';
     notificaciones.appendChild(notificacion);
-
-    // Limitar a 3 notificaciones visibles
-    while (notificaciones.childElementCount > 3) {
-        notificaciones.firstElementChild.remove();
-    }
     
+    // Animar entrada
+    setTimeout(() => {
+        notificacion.style.transition = 'all 0.3s ease';
+        notificacion.style.opacity = '1';
+        notificacion.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Reproducir sonido solo para tipos importantes
     if (tipo === 'exito') {
         playSuccess();
     } else if (tipo === 'error') {
         playError();
-    } else {
+    } else if (tipo === 'info' && !esMismoMensaje) {
+        // Solo reproducir sonido de info si es un mensaje nuevo
         playNotification();
     }
     
+    // Auto-remover con animación de salida (más rápido)
     setTimeout(() => {
-        notificacion.remove();
-    }, 4000);
+        notificacion.style.opacity = '0';
+        notificacion.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notificacion.parentNode) {
+                notificacion.remove();
+            }
+        }, 300);
+    }, 2500); // Reducido de 4000 a 2500ms
+}
+
+// Función para limpiar todas las notificaciones
+function limpiarNotificaciones() {
+    const notificaciones = document.getElementById('notificaciones');
+    if (notificaciones) {
+        notificaciones.innerHTML = '';
+    }
+    notificacionesActivas.clear();
+    contadorNotificaciones = 0;
+}
+
+// Función para mostrar notificaciones temporales (se auto-ocultan más rápido)
+function mostrarNotificacionTemporal(mensaje, tipo = 'info', duracion = 1500) {
+    const ahora = Date.now();
+    
+    // Para notificaciones temporales, ser más permisivos
+    if (ultimaNotificacion.texto === mensaje && (ahora - ultimaNotificacion.tiempo) < 800) {
+        return;
+    }
+    
+    ultimaNotificacion = { texto: mensaje, tiempo: ahora };
+    
+    const notificaciones = document.getElementById('notificaciones');
+    
+    // Limpiar notificaciones existentes si hay muchas
+    const notificacionesExistentes = notificaciones.querySelectorAll('.notificacion');
+    if (notificacionesExistentes.length >= 2) {
+        notificacionesExistentes[0].remove();
+    }
+    
+    const notificacion = document.createElement('div');
+    notificacion.className = `notificacion ${tipo} temporal`;
+    notificacion.textContent = mensaje;
+    
+    // Agregar con animación
+    notificacion.style.opacity = '0';
+    notificacion.style.transform = 'translateX(100%)';
+    notificaciones.appendChild(notificacion);
+    
+    // Animar entrada
+    setTimeout(() => {
+        notificacion.style.transition = 'all 0.2s ease';
+        notificacion.style.opacity = '1';
+        notificacion.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Auto-remover más rápido
+    setTimeout(() => {
+        notificacion.style.opacity = '0';
+        notificacion.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notificacion.parentNode) {
+                notificacion.remove();
+            }
+        }, 200);
+    }, duracion);
 }
 
 // Funciones auxiliares
@@ -1552,4 +1970,70 @@ function agregarEventoHistorialOffline(texto) {
     const hora = new Date(); const hh = String(hora.getHours()).padStart(2,'0'); const mm = String(hora.getMinutes()).padStart(2,'0');
     const div = document.createElement('div'); div.className = 'hist-item'; div.innerHTML = `<span class='hist-time'>[${hh}:${mm}]</span> ${texto}`; lista.prepend(div);
     while (lista.childElementCount>20) lista.lastElementChild.remove();
+}
+
+// Función para verificar si hay empate entre jugadores
+function verificarEmpate(ganador) {
+    if (!salaActual || !salaActual.ganadores) return;
+    
+    // Buscar jugadores que ganaron el mismo patrón con el mismo número
+    const empates = salaActual.ganadores.filter(g => 
+        g.patron === ganador.patron && 
+        g.numeroGanador === ganador.numeroGanador &&
+        g.jugador.id !== ganador.jugador.id
+    );
+    
+    // Si hay empate, programar tiebreak para después del temporizador
+    if (empates.length > 0) {
+        const jugadoresEmpatados = [ganador, ...empates];
+        const dataEmpate = {
+            empate: true,
+            jugadoresEmpatados: jugadoresEmpatados,
+            patron: ganador.patron,
+            numeroGanador: ganador.numeroGanador
+        };
+        
+        // Programar tiebreak para después del temporizador del modal
+        setTimeout(() => {
+            iniciarTiebreak(dataEmpate);
+        }, 6000); // 5 segundos del temporizador + 1 segundo extra
+    }
+}
+
+// Función para iniciar el tiebreak
+function iniciarTiebreak(dataEmpate) {
+    // Cerrar el modal de bingo si está abierto
+    const modalBingo = document.getElementById('modalBingo');
+    if (modalBingo && !modalBingo.classList.contains('oculta')) {
+        modalBingo.classList.add('oculta');
+    }
+    
+    // Iniciar el tiebreak
+    manejarTiebreakIniciado(dataEmpate);
+    
+    // Simular el proceso de tiro de dados
+    setTimeout(() => {
+        // Simular resultado del tiebreak
+        const resultadoTiebreak = {
+            tiradas: dataEmpate.jugadoresEmpatados.map(j => ({
+                jugadorId: j.jugador.id,
+                nombre: j.jugador.nombre,
+                dice1: Math.floor(Math.random() * 6) + 1,
+                dice2: Math.floor(Math.random() * 6) + 1
+            })),
+            ganador: null
+        };
+        
+        // Calcular ganador (suma más alta)
+        let maxSuma = 0;
+        resultadoTiebreak.tiradas.forEach(t => {
+            const suma = t.dice1 + t.dice2;
+            if (suma > maxSuma) {
+                maxSuma = suma;
+                resultadoTiebreak.ganador = { jugadorId: t.jugadorId };
+            }
+        });
+        
+        manejarTiebreakResultado(resultadoTiebreak);
+    }, 4000);
 }

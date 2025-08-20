@@ -14,39 +14,96 @@
     <div id="app">
         <!-- Pantalla de inicio -->
         <div id="pantallaInicio" class="pantalla">
-            <div class="container">
-                <div class="header">
-                    <h1><i class="fas fa-dice"></i> Bingo Multijugador</h1>
-                    <p>¡Diviértete jugando bingo con amigos en tiempo real!</p>
+            <div class="hero-container">
+                <div class="hero-content">
+                    <div class="hero-title">
+                        <div class="title-icon">
+                            <i class="fas fa-dice"></i>
+                        </div>
+                        <h1>BINGO</h1>
+                        <h2>Multijugador</h2>
+                        <p class="hero-subtitle">¡La diversión está a un clic de distancia!</p>
+                    </div>
+                    
+                    <div class="hero-actions">
+                        <button id="btnJugar" class="btn-hero">
+                            <span class="btn-text">¡JUGAR!</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                    </div>
+                    
+                    <div class="hero-features">
+                        <div class="feature">
+                            <i class="fas fa-users"></i>
+                            <span>Multijugador</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-wifi"></i>
+                            <span>Tiempo Real</span>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="opciones">
-                    <div class="opcion">
-                        <h3><i class="fas fa-plus-circle"></i> Crear Sala</h3>
+                <div class="floating-elements">
+                    <div class="floating-card card-1">🎯</div>
+                    <div class="floating-card card-2">🎲</div>
+                    <div class="floating-card card-3">🏆</div>
+                    <div class="floating-card card-4">⭐</div>
+                    <div class="floating-card card-5">🎉</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de selección de modo -->
+        <div id="pantallaSeleccionModo" class="pantalla oculta">
+            <div class="container">
+                <div class="header">
+                    <h2><i class="fas fa-gamepad"></i> Selecciona tu Modo de Juego</h2>
+                    <p>Elige cómo quieres disfrutar del bingo</p>
+                </div>
+                
+                <div class="modos-container">
+                    <div class="modo-card" id="modoCrearSala">
+                        <div class="modo-icon">
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                        <h3>Crear Sala</h3>
                         <p>Crea una nueva sala y comparte el código con tus amigos</p>
-                        <button id="btnCrearSala" class="btn btn-primary">
+                        <button class="btn btn-primary">
                             <i class="fas fa-plus"></i> Crear Nueva Sala
                         </button>
                     </div>
                     
-                    <div class="opcion">
-                        <h3><i class="fas fa-sign-in-alt"></i> Unirse a Sala</h3>
+                    <div class="modo-card" id="modoUnirseSala">
+                        <div class="modo-icon">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                        <h3>Unirse a Sala</h3>
                         <p>Únete a una sala existente con el código de invitación</p>
                         <div class="input-group">
                             <input type="text" id="codigoSala" placeholder="Código (4 dígitos)" maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
-                            <button id="btnUnirseSala" class="btn btn-secondary">
+                            <button class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt"></i> Unirse
                             </button>
                         </div>
                     </div>
 
-                    <div class="opcion">
-                        <h3><i class="fas fa-users"></i> Juego Presencial</h3>
+                    <div class="modo-card" id="modoPresencial">
+                        <div class="modo-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Juego Presencial</h3>
                         <p>Imprime tablas fijas y juega en persona con verificación automática</p>
-                        <button id="btnModoPresencial" class="btn btn-primary">
+                        <button class="btn btn-primary">
                             <i class="fas fa-print"></i> Ir al Modo Presencial
                         </button>
                     </div>
+                </div>
+                
+                <div class="volver-inicio">
+                    <button id="btnVolverInicio" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver al Inicio
+                    </button>
                 </div>
             </div>
         </div>
@@ -261,16 +318,51 @@
 
         <!-- Modal de desempate (dado) -->
         <div id="modalTiebreak" class="modal oculta">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3><i class="fas fa-dice"></i> Desempate por dado</h3>
+            <div class="modal-content tiebreak-modal">
+                <div class="modal-header tiebreak-header">
+                    <div class="tiebreak-icon">
+                        <i class="fas fa-dice"></i>
+                    </div>
+                    <h3>¡Desempate por Dado!</h3>
+                    <p class="tiebreak-subtitle">La suerte decidirá el ganador</p>
                 </div>
-                <div class="modal-body">
-                    <p id="tiebreakMensaje">Se detectó un empate. Tirando el dado...</p>
-                    <div id="tiebreakLista" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;"></div>
+                <div class="modal-body tiebreak-body">
+                    <div class="tiebreak-animation" id="tiebreakAnimation">
+                        <div class="dice-container">
+                            <div class="dice-pair">
+                                <div class="dice-spinner" id="diceSpinner1">
+                                    <i class="fas fa-dice-one"></i>
+                                    <i class="fas fa-dice-two"></i>
+                                    <i class="fas fa-dice-three"></i>
+                                    <i class="fas fa-dice-four"></i>
+                                    <i class="fas fa-dice-five"></i>
+                                    <i class="fas fa-dice-six"></i>
+                                </div>
+                                <div class="dice-spinner" id="diceSpinner2">
+                                    <i class="fas fa-dice-one"></i>
+                                    <i class="fas fa-dice-two"></i>
+                                    <i class="fas fa-dice-three"></i>
+                                    <i class="fas fa-dice-four"></i>
+                                    <i class="fas fa-dice-five"></i>
+                                    <i class="fas fa-dice-six"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <p id="tiebreakMensaje" class="tiebreak-message">Preparando el desempate...</p>
+                        <div class="tiebreak-info" id="tiebreakInfo">
+                            <p><i class="fas fa-info-circle"></i> Cada jugador tirará dos dados. La suma más alta gana.</p>
+                            <p><i class="fas fa-clock"></i> El desempate se ejecutará automáticamente.</p>
+                        </div>
+                    </div>
+                    <div class="tiebreak-results" id="tiebreakResults" style="display: none;">
+                        <h4>Resultados del Desempate</h4>
+                        <div id="tiebreakLista" class="tiebreak-list"></div>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button id="btnCerrarTiebreak" class="btn btn-primary">Cerrar</button>
+                <div class="modal-footer tiebreak-footer">
+                    <button id="btnCerrarTiebreak" class="btn btn-primary btn-tiebreak">
+                        <i class="fas fa-check"></i> Continuar
+                    </button>
                 </div>
             </div>
         </div>
@@ -446,7 +538,11 @@
         </div>
 
         <!-- Notificaciones -->
-        <div id="notificaciones" class="notificaciones"></div>
+        <div id="notificaciones" class="notificaciones">
+            <button id="btnLimpiarNotificaciones" class="btn-limpiar-notificaciones" title="Limpiar notificaciones">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
