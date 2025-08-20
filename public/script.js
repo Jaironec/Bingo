@@ -231,6 +231,12 @@ function seleccionarTabla(tablaId) {
 }
 
 function iniciarJuego() {
+    // Verificar que todos los jugadores tengan tabla seleccionada
+    if (!verificarTodasLasTablasSeleccionadas()) {
+        mostrarNotificacion('Todos los jugadores deben seleccionar una tabla antes de iniciar', 'error');
+        return;
+    }
+    
     const patrones = obtenerPatronesSeleccionados();
     const velocidad = parseInt(document.getElementById('velocidadCanto').value);
     
@@ -247,6 +253,24 @@ function iniciarJuego() {
     });
 }
 
+// Función para verificar que todos los jugadores tengan tabla seleccionada
+function verificarTodasLasTablasSeleccionadas() {
+    if (!salaActual || !salaActual.jugadores || salaActual.jugadores.length === 0) {
+        return false;
+    }
+    
+    // Verificar que todos los jugadores tengan tabla seleccionada
+    const jugadoresSinTabla = salaActual.jugadores.filter(j => !j.tablaSeleccionada);
+    
+    if (jugadoresSinTabla.length > 0) {
+        const nombres = jugadoresSinTabla.map(j => j.nombre).join(', ');
+        mostrarNotificacion(`Los siguientes jugadores no han seleccionado tabla: ${nombres}`, 'error');
+        return false;
+    }
+    
+    return true;
+}
+
 function marcarNumero(numero) {
     socket.emit('marcarNumero', {
         salaId: salaActual.id,
@@ -259,13 +283,216 @@ function declararBingoUnico() {
     const numeroActualTxt = document.getElementById('numeroActual').textContent;
     let numeroGanador = numeroActualTxt;
     if (numeroActualTxt.match(/^[BINGO]\d+$/)) numeroGanador = numeroActualTxt.substring(1);
+    
+    // Verificar cooldown
     if ((ahora - ultimoBingoClickMs) < BINGO_COOLDOWN_MS && ultimoBingoClickNumero === numeroGanador) {
         mostrarNotificacion('Espera un momento…', 'info');
         return;
     }
+    
+    // Verificar que el jugador tenga una tabla seleccionada
+    if (!tablaSeleccionada) {
+        mostrarNotificacion('Debes seleccionar una tabla antes de declarar bingo', 'error');
+        return;
+    }
+    
+    // Verificar que el bingo sea válido antes de enviar al servidor
+    if (!verificarBingoValido(numeroGanador)) {
+        mostrarNotificacion('Bingo inválido - No tienes un patrón ganador', 'error');
+        return;
+    }
+    
     ultimoBingoClickMs = ahora;
     ultimoBingoClickNumero = numeroGanador;
     socket.emit('declararBingoUnico', { salaId: salaActual.id, numeroGanador: numeroGanador });
+}
+
+// Función para verificar si el bingo es válido
+function verificarBingoValido(numeroGanador) {
+    if (!tablaSeleccionada || !numerosMarcados || numerosMarcados.length === 0) {
+        return false;
+    }
+    
+    // Verificar si el número ganador está marcado
+    if (!numerosMarcados.includes(parseInt(numeroGanador))) {
+        return false;
+    }
+    
+    // Verificar patrones disponibles
+    const patronesDisponibles = obtenerPatronesDisponibles();
+    
+    // Verificar cada patrón disponible
+    for (const patron of patronesDisponibles) {
+        if (verificarPatronGanado(patron, numeroGanador)) {
+            return true; // Al menos un patrón es válido
+        }
+    }
+    
+    return false; // Ningún patrón válido
+}
+
+// Función para obtener patrones disponibles (no ganados)
+function obtenerPatronesDisponibles() {
+    if (!salaActual || !salaActual.ganadores) return ['linea', 'cuatroEsquinas', 'loco', 'machetaso', 'tablaLlena'];
+    
+    const patronesGanados = salaActual.ganadores.map(g => g.patron);
+    return ['linea', 'cuatroEsquinas', 'loco', 'machetaso', 'tablaLlena'].filter(p => !patronesGanados.includes(p));
+}
+
+// Función para verificar si un patrón específico está ganado
+function verificarPatronGanado(patron, numeroGanador) {
+    if (!tablaSeleccionada || !numerosMarcados) return false;
+    
+    const numerosMarcadosSet = new Set(numerosMarcados);
+    
+    switch (patron) {
+        case 'linea':
+            // Verificar líneas horizontales
+            for (let fila = 0; fila < 5; fila++) {
+                let celdaGanadora = false;
+                let celdasMarcadas = 0;
+                
+                for (let col = 0; col < 5; col++) {
+                    const celda = tablaSeleccionada.numeros[fila][col];
+                    if (celda.esLibre || numerosMarcadosSet.has(celda.numero)) {
+                        celdasMarcadas++;
+                        if (celda.numero === parseInt(numeroGanador)) {
+                            celdaGanadora = true;
+                        }
+                    }
+                }
+                
+                if (celdasMarcadas === 5 && celdaGanadora) {
+                    return true;
+                }
+            }
+            
+            // Verificar líneas verticales
+            for (let col = 0; col < 5; col++) {
+                let celdaGanadora = false;
+                let celdasMarcadas = 0;
+                
+                for (let fila = 0; fila < 5; fila++) {
+                    const celda = tablaSeleccionada.numeros[fila][col];
+                    if (celda.esLibre || numerosMarcadosSet.has(celda.numero)) {
+                        celdasMarcadas++;
+                        if (celda.numero === parseInt(numeroGanador)) {
+                            celdaGanadora = true;
+                        }
+                    }
+                }
+                
+                if (celdasMarcadas === 5 && celdaGanadora) {
+                    return true;
+                }
+            }
+            break;
+            
+        case 'cuatroEsquinas':
+            const esquinas = [
+                tablaSeleccionada.numeros[0][0],
+                tablaSeleccionada.numeros[0][4],
+                tablaSeleccionada.numeros[4][0],
+                tablaSeleccionada.numeros[4][4]
+            ];
+            
+            let esquinasMarcadas = 0;
+            let esquinaGanadora = false;
+            
+            esquinas.forEach(esquina => {
+                if (esquina.esLibre || numerosMarcadosSet.has(esquina.numero)) {
+                    esquinasMarcadas++;
+                    if (esquina.numero === parseInt(numeroGanador)) {
+                        esquinaGanadora = true;
+                    }
+                }
+            });
+            
+            if (esquinasMarcadas === 4 && esquinaGanadora) {
+                return true;
+            }
+            break;
+            
+        case 'loco':
+            let numerosMarcadosEnTabla = 0;
+            let numeroGanadorEnTabla = false;
+            
+            tablaSeleccionada.numeros.forEach(fila => {
+                fila.forEach(celda => {
+                    if (celda.esLibre || numerosMarcadosSet.has(celda.numero)) {
+                        numerosMarcadosEnTabla++;
+                        if (celda.numero === parseInt(numeroGanador)) {
+                            numeroGanadorEnTabla = true;
+                        }
+                    }
+                });
+            });
+            
+            if (numerosMarcadosEnTabla === 5 && numeroGanadorEnTabla) {
+                return true;
+            }
+            break;
+            
+        case 'machetaso':
+            // Diagonal principal
+            let diagonalPrincipalMarcada = 0;
+            let diagonalPrincipalGanadora = false;
+            
+            for (let i = 0; i < 5; i++) {
+                const celda = tablaSeleccionada.numeros[i][i];
+                if (celda.esLibre || numerosMarcadosSet.has(celda.numero)) {
+                    diagonalPrincipalMarcada++;
+                    if (celda.numero === parseInt(numeroGanador)) {
+                        diagonalPrincipalGanadora = true;
+                    }
+                }
+            }
+            
+            if (diagonalPrincipalMarcada === 5 && diagonalPrincipalGanadora) {
+                return true;
+            }
+            
+            // Diagonal secundaria
+            let diagonalSecundariaMarcada = 0;
+            let diagonalSecundariaGanadora = false;
+            
+            for (let i = 0; i < 5; i++) {
+                const celda = tablaSeleccionada.numeros[i][4-i];
+                if (celda.esLibre || numerosMarcadosSet.has(celda.numero)) {
+                    diagonalSecundariaMarcada++;
+                    if (celda.numero === parseInt(numeroGanador)) {
+                        diagonalSecundariaGanadora = true;
+                    }
+                }
+            }
+            
+            if (diagonalSecundariaMarcada === 5 && diagonalSecundariaGanadora) {
+                return true;
+            }
+            break;
+            
+        case 'tablaLlena':
+            let tablaCompleta = true;
+            let numeroGanadorEnTablaLlena = false;
+            
+            tablaSeleccionada.numeros.forEach(fila => {
+                fila.forEach(celda => {
+                    if (!celda.esLibre && !numerosMarcadosSet.has(celda.numero)) {
+                        tablaCompleta = false;
+                    }
+                    if (celda.numero === parseInt(numeroGanador)) {
+                        numeroGanadorEnTablaLlena = true;
+                    }
+                });
+            });
+            
+            if (tablaCompleta && numeroGanadorEnTablaLlena) {
+                return true;
+            }
+            break;
+    }
+    
+    return false;
 }
 
 // Manejadores de eventos de Socket.IO
@@ -432,8 +659,8 @@ function manejarNumeroMarcado(data) {
 function manejarBingoDeclarado(ganador) {
     // Verificar si el bingo es válido
     if (!ganador || !ganador.jugador || !ganador.patron) {
-        console.log('❌ Bingo inválido recibido:', ganador);
-        mostrarNotificacion('Bingo inválido detectado', 'error');
+        console.log('❌ Bingo inválido recibido del servidor:', ganador);
+        mostrarNotificacion('Bingo inválido detectado por el servidor', 'error');
         return;
     }
     
@@ -867,6 +1094,9 @@ function mostrarTablasDisponibles() {
     
     // Mostrar también la lista de jugadores
     mostrarListaJugadoresSeleccion();
+    
+    // Verificar estado inicial de los botones de inicio
+    verificarEstadoInicioJuego();
 }
 
 function mostrarListaJugadoresSeleccion() {
@@ -885,16 +1115,65 @@ function mostrarListaJugadoresSeleccion() {
             const estadoTabla = jugador.tablaSeleccionada ? `Tabla ${jugador.tablaSeleccionada.id + 1}` : 'Seleccionando...';
             const tipoBadge = jugador.tablaSeleccionada ? 'tabla' : 'seleccionando';
             const crown = jugador.id === salaActual.anfitrion ? '<i class="fas fa-crown crown" title="Anfitrión"></i>' : '';
+            
+            // Agregar indicador visual de estado
+            const estadoIcono = jugador.tablaSeleccionada ? 
+                '<i class="fas fa-check-circle" style="color: #48bb78; margin-right: 5px;"></i>' : 
+                '<i class="fas fa-clock" style="color: #ed8936; margin-right: 5px;"></i>';
+            
             div.innerHTML = `
                 <div class="avatar">${jugador.nombre.charAt(0).toUpperCase()}</div>
                 <div>
                     <div style="font-weight: 600; display:flex; align-items:center; gap:6px;">${jugador.nombre} ${crown}</div>
-                    <div class="badge-estado ${tipoBadge}">${estadoTabla}</div>
+                    <div class="badge-estado ${tipoBadge}">${estadoIcono}${estadoTabla}</div>
                 </div>
             `;
             
             listaJugadores.appendChild(div);
         });
+        
+        // Mostrar resumen del estado
+        mostrarResumenEstadoTablas();
+    }
+}
+
+// Función para mostrar resumen del estado de las tablas
+function mostrarResumenEstadoTablas() {
+    if (!salaActual || !salaActual.jugadores) return;
+    
+    const totalJugadores = salaActual.jugadores.length;
+    const jugadoresConTabla = salaActual.jugadores.filter(j => j.tablaSeleccionada).length;
+    const jugadoresSinTabla = totalJugadores - jugadoresConTabla;
+    
+    // Buscar el elemento de resumen o crearlo
+    let resumenElement = document.getElementById('resumenEstadoTablas');
+    if (!resumenElement) {
+        resumenElement = document.createElement('div');
+        resumenElement.id = 'resumenEstadoTablas';
+        resumenElement.className = 'resumen-estado-tablas';
+        
+        // Insertar después de la lista de jugadores
+        const listaJugadores = document.getElementById('listaJugadoresSeleccion');
+        if (listaJugadores && listaJugadores.parentNode) {
+            listaJugadores.parentNode.insertBefore(resumenElement, listaJugadores.nextSibling);
+        }
+    }
+    
+    // Actualizar contenido del resumen
+    if (jugadoresSinTabla === 0) {
+        resumenElement.innerHTML = `
+            <div class="resumen-completo">
+                <i class="fas fa-check-circle"></i> Todas las tablas están seleccionadas
+            </div>
+        `;
+        resumenElement.className = 'resumen-estado-tablas resumen-completo';
+    } else {
+        resumenElement.innerHTML = `
+            <div class="resumen-pendiente">
+                <i class="fas fa-clock"></i> ${jugadoresSinTabla} de ${totalJugadores} jugadores sin tabla
+            </div>
+        `;
+        resumenElement.className = 'resumen-estado-tablas resumen-pendiente';
     }
 }
 
@@ -1387,9 +1666,43 @@ function manejarTablaSeleccionada(data) {
     agregarEventoHistorial(`🎴 ${jugadorActual?.nombre || 'Jugador'} seleccionó la tabla ${data.tabla.id + 1}`);
     mostrarNotificacion(`Seleccionaste la tabla ${data.tabla.id + 1}`, 'exito');
     
+    // Verificar si todas las tablas están seleccionadas y habilitar botón de iniciar
+    verificarEstadoInicioJuego();
+    
     if (salaActual.juegoActivo) {
         mostrarPantalla('pantallaJuego');
         inicializarPantallaJuego();
+    }
+}
+
+// Función para verificar el estado del botón de iniciar juego
+function verificarEstadoInicioJuego() {
+    if (!salaActual || !salaActual.jugadores) return;
+    
+    const todasLasTablasSeleccionadas = verificarTodasLasTablasSeleccionadas();
+    const btnIniciar = document.getElementById('btnIniciarJuego');
+    const btnIniciarRapido = document.getElementById('btnIniciarJuegoRapido');
+    
+    if (btnIniciar) {
+        btnIniciar.disabled = !todasLasTablasSeleccionadas;
+        if (todasLasTablasSeleccionadas) {
+            btnIniciar.classList.remove('btn-deshabilitado');
+            btnIniciar.classList.add('btn-habilitado');
+        } else {
+            btnIniciar.classList.add('btn-deshabilitado');
+            btnIniciar.classList.remove('btn-habilitado');
+        }
+    }
+    
+    if (btnIniciarRapido) {
+        btnIniciarRapido.disabled = !todasLasTablasSeleccionadas;
+        if (todasLasTablasSeleccionadas) {
+            btnIniciarRapido.classList.remove('btn-deshabilitado');
+            btnIniciarRapido.classList.add('btn-habilitado');
+        } else {
+            btnIniciarRapido.classList.add('btn-deshabilitado');
+            btnIniciarRapido.classList.remove('btn-habilitado');
+        }
     }
 }
 
@@ -1675,6 +1988,12 @@ function actualizarVelocidadRapida() {
 }
 
 function iniciarJuegoRapido() {
+    // Verificar que todos los jugadores tengan tabla seleccionada
+    if (!verificarTodasLasTablasSeleccionadas()) {
+        mostrarNotificacion('Todos los jugadores deben seleccionar una tabla antes de iniciar', 'error');
+        return;
+    }
+    
     const patronesSeleccionados = [];
     document.querySelectorAll('.patrones-rapidos input[type="checkbox"]:checked').forEach(checkbox => {
         patronesSeleccionados.push(checkbox.value);
