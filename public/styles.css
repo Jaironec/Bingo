@@ -213,16 +213,57 @@ body {
     background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
     color: white;
     margin: 5px;
-    padding: 10px 16px;
-    font-size: 0.9rem;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 /* Tiebreak dado */
-.dice-card { background:#fff; border:2px solid #e2e8f0; border-radius:10px; padding:12px; min-width:120px; text-align:center; }
-.dice-card .name { font-weight:600; color:#2d3748; margin-bottom:6px; }
-.dice { width:48px; height:48px; margin:0 auto 6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.2rem; box-shadow:0 2px 6px rgba(0,0,0,0.15); animation: diceRoll 1s ease; }
-.dice.winner { background:linear-gradient(135deg,#48bb78,#38a169); box-shadow:0 4px 10px rgba(56,161,105,0.35); }
-@keyframes diceRoll { 0%{transform:rotate(0) scale(1)} 50%{transform:rotate(180deg) scale(1.1)} 100%{transform:rotate(360deg) scale(1)} }
+.dice-card { 
+    background: #fff; 
+    border: 2px solid #e2e8f0; 
+    border-radius: 10px; 
+    padding: 12px; 
+    min-width: 120px; 
+    text-align: center; 
+}
+
+.dice-card .name { 
+    font-weight: 600; 
+    color: #2d3748; 
+    margin-bottom: 6px; 
+}
+
+.dice { 
+    width: 48px; 
+    height: 48px; 
+    margin: 0 auto 6px; 
+    background: linear-gradient(135deg, #667eea, #764ba2); 
+    color: #fff; 
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 700; 
+    font-size: 1.2rem; 
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15); 
+    animation: diceRoll 1s ease; 
+}
+
+.dice.winner { 
+    background: linear-gradient(135deg, #48bb78, #38a169); 
+    box-shadow: 0 4px 10px rgba(56,161,105,0.35); 
+}
+
+@keyframes diceRoll { 
+    0% { transform: rotate(0) scale(1) } 
+    50% { transform: rotate(180deg) scale(1.1) } 
+    100% { transform: rotate(360deg) scale(1) } 
+}
 
 .btn-bingo:hover {
     transform: translateY(-2px);
@@ -574,26 +615,8 @@ body {
     min-width: 120px;
 }
 
-/* Botón de nueva partida en el juego */
-#btnNuevaPartidaJuego {
-    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-    border: none;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-}
-
-#btnNuevaPartidaJuego:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(72, 187, 120, 0.3);
-}
-
-#btnNuevaPartidaJuego:active {
-    transform: translateY(0);
+.controles-juego .btn-bingo {
+    min-width: 140px;
 }
 
 .juego-content {
@@ -732,12 +755,7 @@ body {
     border-color: #dd6b20;
 }
 
-/* Botones de patrón */
-.botones-patron {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
+
 
 /* Lista de jugadores */
 .lista-jugadores,
@@ -1556,10 +1574,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     grid-template-rows: auto auto auto;
     gap: 16px;
 }
-.botones-patron { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
-/* Hacer sticky los botones de bingo */
-.botones-bingo { position: sticky; bottom: 0; background: rgba(255,255,255,0.98); padding-top: 8px; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 10px rgba(0,0,0,0.04); }
 .numeros-cantados { max-height: 240px; overflow: auto; }
 
 /* Animación del modal tutorial */
