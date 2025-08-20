@@ -879,8 +879,8 @@ function manejarBingoDeclarado(ganador) {
             mostrarModalGanadoresFinal();
         }, 6000); // 5 segundos del temporizador + 1 segundo extra
     } else {
-        // Iniciar temporizador para cerrar el modal de bingo
-        // El modal se cerrará automáticamente después de 5 segundos
+        // El servidor maneja automáticamente el tiebreak y la pausa
+        // Solo mostrar el modal de victoria y esperar a que el servidor reanude
         iniciarTemporizadorModal(5);
         setTimeout(() => { mostrarNotificacion('El juego se pausa por 5 segundos...', 'info'); }, 1000);
     }
@@ -889,12 +889,13 @@ function manejarBingoDeclarado(ganador) {
 function manejarTiebreakIniciado(data) {
     console.log('🎲 Tiebreak iniciado:', data);
     
-    // NO mostrar el modal de tiebreak aquí
     // Solo mostrar notificación de que se está esperando a otros posibles ganadores
     mostrarNotificacion('Esperando a otros posibles ganadores...', 'info');
     
     // El modal de tiebreak solo se mostrará cuando realmente haya empate
     // (cuando se llame a manejarTiebreakResultado)
+    
+    // NO pausar el juego aquí - solo esperar
 }
 
 // Función para iniciar la animación secuencial de dados
@@ -904,19 +905,8 @@ function manejarTiebreakResultado(payload) {
     console.log('🎲 Procesando resultado del tiebreak:', payload);
     
     // Verificar si realmente hay empate (múltiples jugadores)
-    if (!payload.tiradas || payload.tiradas.length <= 1 || payload.sinEmpate) {
+    if (!payload.tiradas || payload.tiradas.length <= 1) {
         console.log('🎲 No hay empate real, no mostrar modal de tiebreak');
-        
-        // Si no hay empate, mostrar notificación y continuar
-        if (payload.sinEmpate) {
-            mostrarNotificacion('No hubo empate, continuando el juego...', 'info');
-            
-            // Cerrar inmediatamente el modal de bingo si está abierto
-            const modalBingo = document.getElementById('modalBingo');
-            if (modalBingo && !modalBingo.classList.contains('oculta')) {
-                modalBingo.classList.add('oculta');
-            }
-        }
         
         // Limpiar estado del tiebreak
         limpiarEstadoTiebreak();
@@ -1227,6 +1217,12 @@ function manejarEstadoJuego(data) {
             mostrarNotificacion('¡Juego reanudado después del desempate!', 'exito');
         } else if (data.por && data.por.includes('sinEmpate')) {
             mostrarNotificacion('¡Juego reanudado! No hubo empate', 'info');
+            
+            // Cerrar inmediatamente el modal de bingo si está abierto
+            const modalBingo = document.getElementById('modalBingo');
+            if (modalBingo && !modalBingo.classList.contains('oculta')) {
+                modalBingo.classList.add('oculta');
+            }
         }
     }
 }

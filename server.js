@@ -162,118 +162,229 @@ function verificarBingo(tabla, numerosMarcados, patron, numeroUltimo) {
   return { ganado: false };
 }
 
-// Resolver ventana de tiebreak: valida a cada participante contra todos los patrones permitidos con el mismo último número,
-// agrupa por patrón. Si hay múltiples ganadores en un mismo patrón con el mismo número, desempata por dado.
+// NUEVO ENFOQUE: Detectar TODOS los patrones ganados y clasificar inteligentemente
 function resolverTiebreak(salaId) {
   const sala = salas.get(salaId);
   if (!sala || !sala._tiebreak) return;
+  
   sala._tiebreak.activo = false;
   const numero = sala._tiebreak.numero;
   const participantes = sala._tiebreak.participantes || [];
   clearTimeout(sala._tiebreak.timeout);
 
-  const patrones = sala.configuracion?.patrones || ['linea','tablaLlena','cuatroEsquinas','machetaso','loco'];
-  const candidatosPorPatron = new Map();
+  console.log(`🎲 Resolviendo tiebreak para número ${numero} con ${participantes.length} participantes`);
 
-  for (const p of participantes) {
-    const jugador = sala.jugadores.find(j => j.id === p.id);
-    if (!jugador || !jugador.tablaSeleccionada) continue;
-    // filtrar números válidos
-    const numerosValidos = (jugador.numerosMarcados || []).filter(n => 
-      jugador.tablaSeleccionada.numeros.some(f => f.some(c => c.numero === n))
-    );
-    for (const patron of patrones) {
-      const res = verificarBingo(jugador.tablaSeleccionada.numeros, numerosValidos, patron, numero);
-      if (res.ganado) {
-        const arr = candidatosPorPatron.get(patron) || [];
-        arr.push({ jugador, patron, resultado: res });
-        candidatosPorPatron.set(patron, arr);
-      }
-    }
-  }
-
-  // Emit winners (con desempate por patrón si hay varios con mismo número)
-  const winnersToEmit = [];
-  let huboEmpate = false;
+  // PASO 1: Detectar TODOS los patrones ganados por cada participante
+  const todosLosPatrones = detectarTodosLosPatronesGanados(sala, numero, participantes);
   
-  candidatosPorPatron.forEach((lista, patron) => {
-    if (lista.length === 1) {
-      winnersToEmit.push({ ...lista[0], numeroGanador: String(numero) });
-    } else if (lista.length > 1) {
-      huboEmpate = true;
-      // Desempate por dado 1-6; si empatan de nuevo, mayor gana; repetir hasta romper empate razonable
-      const tiradas = lista.map(l => ({ jugador: l.jugador, patron, resultado: l.resultado, roll: Math.floor(Math.random()*6)+1 }));
-      // determinar mayor
-      let max = Math.max(...tiradas.map(t => t.roll));
-      let top = tiradas.filter(t => t.roll === max);
-      let intentos = 0;
-      while (top.length > 1 && intentos < 5) {
-        top = top.map(t => ({ ...t, roll: Math.floor(Math.random()*6)+1 }));
-        max = Math.max(...top.map(t => t.roll));
-        top = top.filter(t => t.roll === max);
-        intentos++;
-      }
-      const ganador = top[0];
-      io.to(salaId).emit('tiebreakResultado', { patron, numero: numero, tiradas: tiradas.map(t => ({ jugadorId: t.jugador.id, nombre: t.jugador.nombre, roll: t.roll })), ganador: { jugadorId: ganador.jugador.id, nombre: ganador.jugador.nombre, roll: ganador.roll } });
-      winnersToEmit.push({ jugador: ganador.jugador, patron, resultado: lista.find(l => l.jugador.id === ganador.jugador.id).resultado, numeroGanador: String(numero) });
+  // PASO 2: Clasificar ganadores únicos vs empates reales
+  const { ganadoresUnicos, empatesReales } = clasificarResultados(todosLosPatrones, numero);
+  
+  console.log(`🎯 Ganadores únicos: ${ganadoresUnicos.length}, Empates reales: ${empatesReales.length}`);
+
+  // PASO 3: Otorgar patrones únicos INMEDIATAMENTE
+  ganadoresUnicos.forEach(ganador => {
+    const yaPatronGanado = sala.ganadores.some(g => 
+      g.patron === ganador.patron && 
+      g.jugador.id === ganador.jugador.id
+    );
+    
+    if (!yaPatronGanado) {
+      const record = {
+        jugador: {
+          id: ganador.jugador.id,
+          nombre: ganador.jugador.nombre,
+          tablaSeleccionada: ganador.jugador.tablaSeleccionada,
+          numerosMarcados: ganador.jugador.numerosMarcados
+        },
+        patron: ganador.patron,
+        resultado: ganador.resultado,
+        numeroGanador: String(numero)
+      };
+      
+      sala.ganadores.push(record);
+      io.to(salaId).emit('bingoDeclarado', record);
+      console.log(`🏆 ${ganador.jugador.nombre} ganó ${ganador.patron} (único)`);
     }
   });
-  
-  // Si no hubo empate, emitir resultado sin tiebreak para que el cliente sepa que puede continuar
-  if (!huboEmpate) {
-    io.to(salaId).emit('tiebreakResultado', { 
-      patron: null, 
-      numero: numero, 
-      tiradas: [], 
-      ganador: null,
-      sinEmpate: true 
-    });
+
+  // PASO 4: Resolver empates con dados
+  if (empatesReales.length > 0) {
+    console.log(`🎲 Resolviendo ${empatesReales.length} empates con dados`);
+    resolverEmpatesConDados(empatesReales, salaId, sala);
+  } else {
+    // No hay empates - reanudar inmediatamente
+    console.log(`✅ No hay empates - reanudando juego inmediatamente`);
+    reanudarJuegoSinEmpate(salaId, sala);
   }
 
-  // Registrar y emitir ganadores; respetar fin por tabla llena
-  let huboTablaLlena = false;
-  for (const w of winnersToEmit) {
-    const yaPatronGanadoConOtroNumero = sala.ganadores.some(g => g.patron === w.patron && Number(g.numeroGanador) !== Number(numero));
-    const jugadorYaGanoEstePatron = sala.ganadores.some(g => g.patron === w.patron && g.jugador.id === w.jugador.id);
-    if (yaPatronGanadoConOtroNumero || jugadorYaGanoEstePatron) continue;
-    const record = {
-      jugador: {
-        id: w.jugador.id,
-        nombre: w.jugador.nombre,
-        tablaSeleccionada: w.jugador.tablaSeleccionada,
-        numerosMarcados: w.jugador.numerosMarcados
-      },
-      patron: w.patron,
-      resultado: w.resultado,
-      numeroGanador: String(numero)
-    };
-    sala.ganadores.push(record);
-    io.to(salaId).emit('bingoDeclarado', record);
-    if (w.patron === 'tablaLlena') huboTablaLlena = true;
-  }
-
+  // Verificar si alguien ganó tabla llena
+  const huboTablaLlena = sala.ganadores.some(g => g.patron === 'tablaLlena');
   if (huboTablaLlena) {
     sala.juegoActivo = false;
     io.to(salaId).emit('juegoTerminado', { mensaje: '¡Tabla Llena! Fin del juego' });
-  } else {
-    // Marcar este número como resuelto para evitar nuevas ventanas para este mismo número
-    sala._tiebreakResueltoParaNumero = numero;
-    
-    if (huboEmpate) {
-      // Si hubo empate, reanudar después de 5s para dar tiempo a ver el modal
-      setTimeout(() => {
-        if (!sala) return;
-        sala.juegoActivo = true;
-        io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'tiebreak' });
-        io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
-      }, 5000);
-    } else {
-      // Si no hubo empate, reanudar inmediatamente
-      sala.juegoActivo = true;
-      io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'sinEmpate' });
-      io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
-    }
   }
+}
+
+// Función para detectar TODOS los patrones ganados
+function detectarTodosLosPatronesGanados(sala, numero, participantes) {
+  const patrones = sala.configuracion?.patrones || ['linea','tablaLlena','cuatroEsquinas','machetaso','loco'];
+  const candidatosPorPatron = new Map();
+
+  // Para cada participante, verificar TODOS los patrones disponibles
+  participantes.forEach(p => {
+    const jugador = sala.jugadores.find(j => j.id === p.id);
+    if (!jugador || !jugador.tablaSeleccionada) return;
+    
+    // Filtrar números válidos (que estén en la tabla del jugador)
+    const numerosValidos = (jugador.numerosMarcados || []).filter(n => 
+      jugador.tablaSeleccionada.numeros.some(f => f.some(c => c.numero === n))
+    );
+    
+    // Verificar cada patrón disponible
+    patrones.forEach(patron => {
+      const resultado = verificarBingo(
+        jugador.tablaSeleccionada.numeros, 
+        numerosValidos, 
+        patron, 
+        numero
+      );
+      
+      if (resultado.ganado) {
+        if (!candidatosPorPatron.has(patron)) {
+          candidatosPorPatron.set(patron, []);
+        }
+        candidatosPorPatron.get(patron).push({
+          jugador,
+          patron,
+          resultado
+        });
+      }
+    });
+  });
+
+  return candidatosPorPatron;
+}
+
+// Función para clasificar ganadores únicos vs empates
+function clasificarResultados(candidatosPorPatron, numero) {
+  const ganadoresUnicos = [];
+  const empatesReales = [];
+
+  candidatosPorPatron.forEach((jugadores, patron) => {
+    if (jugadores.length === 1) {
+      // GANADOR ÚNICO - No necesita tiebreak
+      ganadoresUnicos.push({
+        ...jugadores[0],
+        numeroGanador: String(numero)
+      });
+    } else if (jugadores.length > 1) {
+      // EMPATE REAL - Necesita tiebreak
+      empatesReales.push({
+        patron,
+        jugadores,
+        numeroGanador: String(numero)
+      });
+    }
+  });
+
+  return { ganadoresUnicos, empatesReales };
+}
+
+// Función para resolver empates con dados
+function resolverEmpatesConDados(empatesReales, salaId, sala) {
+  const winnersToEmit = [];
+  
+  empatesReales.forEach(empate => {
+    console.log(`🎲 Resolviendo empate en ${empate.patron} entre ${empate.jugadores.length} jugadores`);
+    
+    // Lanzar dados para cada jugador en este patrón
+    const tiradas = empate.jugadores.map(j => ({
+      jugador: j.jugador,
+      patron: empate.patron,
+      resultado: j.resultado,
+      roll: Math.floor(Math.random() * 6) + 1
+    }));
+    
+    // Determinar ganador (con re-roll si es necesario)
+    let max = Math.max(...tiradas.map(t => t.roll));
+    let top = tiradas.filter(t => t.roll === max);
+    let intentos = 0;
+    
+    while (top.length > 1 && intentos < 5) {
+      top = top.map(t => ({ ...t, roll: Math.floor(Math.random() * 6) + 1 }));
+      max = Math.max(...top.map(t => t.roll));
+      top = top.filter(t => t.roll === max);
+      intentos++;
+    }
+    
+    const ganador = top[0];
+    
+    // Emitir resultado del tiebreak
+    io.to(salaId).emit('tiebreakResultado', {
+      patron: empate.patron,
+      numero: empate.numeroGanador,
+      tiradas: tiradas.map(t => ({
+        jugadorId: t.jugador.id,
+        nombre: t.jugador.nombre,
+        roll: t.roll
+      })),
+      ganador: {
+        jugadorId: ganador.jugador.id,
+        nombre: ganador.jugador.nombre,
+        roll: ganador.roll
+      }
+    });
+    
+    // Agregar a la lista de ganadores
+    winnersToEmit.push({
+      jugador: ganador.jugador,
+      patron: empate.patron,
+      resultado: ganador.resultado,
+      numeroGanador: empate.numeroGanador
+    });
+  });
+  
+  // Registrar ganadores del tiebreak
+  winnersToEmit.forEach(ganador => {
+    const yaPatronGanado = sala.ganadores.some(g => 
+      g.patron === ganador.patron && 
+      g.jugador.id === ganador.jugador.id
+    );
+    
+    if (!yaPatronGanado) {
+      const record = {
+        jugador: {
+          id: ganador.jugador.id,
+          nombre: ganador.jugador.nombre,
+          tablaSeleccionada: ganador.jugador.tablaSeleccionada,
+          numerosMarcados: ganador.jugador.numerosMarcados
+        },
+        patron: ganador.patron,
+        resultado: ganador.resultado,
+        numeroGanador: ganador.numeroGanador
+      };
+      
+      sala.ganadores.push(record);
+      io.to(salaId).emit('bingoDeclarado', record);
+      console.log(`🏆 ${ganador.jugador.nombre} ganó ${ganador.patron} (después de tiebreak)`);
+    }
+  });
+  
+  // Reanudar después de 5s para dar tiempo a ver el modal
+  setTimeout(() => {
+    if (!sala) return;
+    sala.juegoActivo = true;
+    io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'tiebreak' });
+    io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+  }, 5000);
+}
+
+// Función para reanudar sin empate
+function reanudarJuegoSinEmpate(salaId, sala) {
+  sala.juegoActivo = true;
+  io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'sinEmpate' });
+  io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
 }
 
 // Manejo de conexiones Socket.IO
