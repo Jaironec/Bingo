@@ -430,6 +430,13 @@ function manejarNumeroMarcado(data) {
 }
 
 function manejarBingoDeclarado(ganador) {
+    // Verificar si el bingo es válido
+    if (!ganador || !ganador.jugador || !ganador.patron) {
+        console.log('❌ Bingo inválido recibido:', ganador);
+        mostrarNotificacion('Bingo inválido detectado', 'error');
+        return;
+    }
+    
     // Verificar si ya hay un modal abierto para este jugador y número
     const modalAbierto = document.getElementById('modalBingo');
     const esMismoJugadorMismoNumero = modalAbierto && 
@@ -504,15 +511,115 @@ function manejarTiebreakIniciado(data) {
         resultados.style.display = 'none';
         animacion.style.display = 'block';
         
-        // Simular el proceso de tiro de dados con mensajes progresivos
-        setTimeout(() => {
-            mensaje.textContent = 'Tirando los dados...';
-        }, 1500);
-        
-        setTimeout(() => {
-            mensaje.textContent = 'Calculando resultados...';
-        }, 3000);
+        // Iniciar animación secuencial de dados
+        iniciarAnimacionSecuencialDados(data.jugadoresEmpatados, data);
     }
+}
+
+// Función para iniciar la animación secuencial de dados
+function iniciarAnimacionSecuencialDados(jugadores, dataEmpate) {
+    const mensaje = document.getElementById('tiebreakMensaje');
+    const animacion = document.getElementById('tiebreakAnimation');
+    
+    if (!mensaje || !animacion) return;
+    
+    // Guardar jugadores en variable global para acceso posterior
+    window.jugadoresTiebreak = jugadores;
+    
+    let jugadorActual = 0;
+    
+    function animarJugador() {
+        if (jugadorActual >= jugadores.length) {
+            // Todos los jugadores han tirado, calcular resultados
+            setTimeout(() => {
+                mensaje.textContent = 'Calculando resultados...';
+                setTimeout(() => {
+                    calcularResultadosTiebreak(jugadores, dataEmpate);
+                }, 1500);
+            }, 1000);
+            return;
+        }
+        
+        const jugador = jugadores[jugadorActual];
+        mensaje.textContent = `${jugador.jugador.nombre} está tirando los dados...`;
+        
+        // Animar los dados girando con efecto visual mejorado
+        const dados = animacion.querySelectorAll('.dice-spinner');
+        dados.forEach((dado, index) => {
+            dado.classList.add('rolling');
+            // Agregar delay escalonado para los dados
+            setTimeout(() => {
+                dado.style.animationDelay = `${index * 0.2}s`;
+            }, 100);
+        });
+        
+        // Después de 2.5 segundos, mostrar el resultado de este jugador
+        setTimeout(() => {
+            dados.forEach(dado => {
+                dado.classList.remove('rolling');
+                dado.style.animationDelay = '0s';
+            });
+            
+            // Generar números aleatorios para este jugador
+            const dado1 = Math.floor(Math.random() * 6) + 1;
+            const dado2 = Math.floor(Math.random() * 6) + 1;
+            
+            // Guardar el resultado
+            if (!jugador.resultadoDados) {
+                jugador.resultadoDados = { dado1, dado2, suma: dado1 + dado2 };
+            }
+            
+            mensaje.textContent = `${jugador.jugador.nombre} sacó ${dado1} + ${dado2} = ${dado1 + dado2}`;
+            
+            // Pasar al siguiente jugador después de 2 segundos
+            setTimeout(() => {
+                jugadorActual++;
+                animarJugador();
+            }, 2000);
+            
+        }, 2500);
+    }
+    
+    // Iniciar la secuencia
+    animarJugador();
+}
+
+// Función para calcular los resultados del tiebreak
+function calcularResultadosTiebreak(jugadores, dataEmpate) {
+    // Verificar si hay empate en los dados
+    const resultados = jugadores.map(j => j.resultadoDados);
+    const maxSuma = Math.max(...resultados.map(r => r.suma));
+    const ganadores = resultados.filter(r => r.suma === maxSuma);
+    
+    if (ganadores.length > 1) {
+        // Hay empate en los dados, volver a tirar
+        mostrarNotificacion('¡Empate en los dados! Volviendo a tirar...', 'info');
+        
+        // Limpiar resultados anteriores
+        jugadores.forEach(j => delete j.resultadoDados);
+        
+        // Reiniciar la animación
+        setTimeout(() => {
+            iniciarAnimacionSecuencialDados(jugadores, dataEmpate);
+        }, 2000);
+        
+        return;
+    }
+    
+    // Hay un ganador, mostrar resultados
+    const ganador = jugadores.find(j => j.resultadoDados.suma === maxSuma);
+    
+    const resultadoTiebreak = {
+        tiradas: jugadores.map(j => ({
+            jugadorId: j.jugador.id,
+            nombre: j.jugador.nombre,
+            dice1: j.resultadoDados.dado1,
+            dice2: j.resultadoDados.dado2
+        })),
+        ganador: { jugadorId: ganador.jugador.id }
+    };
+    
+    manejarTiebreakResultado(resultadoTiebreak);
 }
 
 function manejarTiebreakResultado(payload) {
@@ -573,9 +680,14 @@ function manejarTiebreakResultado(payload) {
         modal.classList.remove('oculta');
     }
     
-    // Configurar el botón de cerrar
+    // Asegurar que el botón de cerrar sea visible y funcional
     const btn = document.getElementById('btnCerrarTiebreak');
     if (btn) {
+        // Hacer el botón visible
+        btn.style.display = 'block';
+        btn.style.visibility = 'visible';
+        btn.style.opacity = '1';
+        
         btn.onclick = () => {
             modal.classList.add('oculta');
             // Restaurar la animación para la próxima vez
@@ -584,8 +696,15 @@ function manejarTiebreakResultado(payload) {
                 resultados.style.display = 'none';
                 // Limpiar las tarjetas
                 lista.innerHTML = '';
+                // Limpiar resultados de dados
+                if (window.jugadoresTiebreak) {
+                    window.jugadoresTiebreak.forEach(j => delete j.resultadoDados);
+                    delete window.jugadoresTiebreak;
+                }
             }, 300);
         };
+    } else {
+        console.error('❌ Botón de cerrar tiebreak no encontrado');
     }
 }
 
@@ -676,6 +795,16 @@ function manejarJugadorDesconectado(jugador) {
         salaActual.jugadores = salaActual.jugadores.filter(j => j.id !== jugador.id);
     }
     
+    // Si se desconectó el anfitrión o no quedan jugadores, limpiar todo
+    if (salaActual && (salaActual.anfitrion === jugador.id || salaActual.jugadores.length === 0)) {
+        mostrarNotificacion('El anfitrión se desconectó o no quedan jugadores. Limpiando sala...', 'error');
+        setTimeout(() => {
+            limpiarDatosSala();
+            volverInicio();
+        }, 3000);
+        return;
+    }
+    
     // Actualizar UI
     actualizarListaJugadores();
     actualizarNumeroJugadores();
@@ -698,7 +827,12 @@ function actualizarBotonesBingo() { /* sin uso en modo botón único */ }
 function manejarJuegoTerminado(data) {
     agregarEventoHistorial('⏹️ El juego terminó');
     mostrarNotificacion(data.mensaje, 'exito');
-    setTimeout(() => { volverInicio(); }, 5000); // esperar 5s para volver al inicio cuando termina por tabla llena o sin números
+    
+    // Limpiar datos de la sala después de mostrar la notificación
+    setTimeout(() => { 
+        limpiarDatosSala();
+        volverInicio(); 
+    }, 5000); // esperar 5s para volver al inicio cuando termina por tabla llena o sin números
 }
 
 function manejarJuegoReanudado(data) {
@@ -1213,7 +1347,10 @@ function cerrarModalSalir() {
     if (modal) modal.classList.add('oculta');
 }
 function confirmarSalir() {
-    try { socket.disconnect(); } catch (e) {}
+    try { 
+        limpiarDatosSala();
+        socket.disconnect(); 
+    } catch (e) {}
     window.location.reload();
 }
 
@@ -1382,6 +1519,69 @@ function limpiarNotificaciones() {
     contadorNotificaciones = 0;
 }
 
+// Función para limpiar completamente los datos de la sala
+function limpiarDatosSala() {
+    // Limpiar variables globales
+    salaActual = null;
+    jugadorActual = null;
+    tablaSeleccionada = null;
+    numerosMarcados = [];
+    numerosCantados = [];
+    nombrePendiente = null;
+    accionPendiente = null;
+    ultimaNotificacion = { texto: '', tiempo: 0 };
+    ultimoEventoHist = { texto: '', tiempo: 0 };
+    ultimoBingoClickMs = 0;
+    ultimoBingoClickNumero = null;
+    ultimoBingoClickPatron = null;
+    
+    // Limpiar notificaciones
+    limpiarNotificaciones();
+    
+    // Limpiar historial
+    const historial = document.getElementById('historialEventos');
+    if (historial) historial.innerHTML = '';
+    
+    // Limpiar lista de ganadores
+    const panelGanadores = document.getElementById('panelGanadores');
+    if (panelGanadores) panelGanadores.style.display = 'none';
+    
+    // Limpiar números cantados y marcados
+    const numerosCantadosEl = document.getElementById('numerosCantados');
+    if (numerosCantadosEl) numerosCantadosEl.innerHTML = '';
+    
+    // Limpiar tabla de bingo
+    const tablaBingo = document.getElementById('tablaBingo');
+    if (tablaBingo) tablaBingo.innerHTML = '';
+    
+    // Limpiar número actual
+    const numeroActual = document.getElementById('numeroActual');
+    if (numeroActual) numeroActual.textContent = '-';
+    
+    // Limpiar modales si están abiertos
+    const modalBingo = document.getElementById('modalBingo');
+    if (modalBingo) modalBingo.classList.add('oculta');
+    
+    const modalTiebreak = document.getElementById('modalTiebreak');
+    if (modalTiebreak) modalTiebreak.classList.add('oculta');
+    
+    // Remover clases del body
+    document.body.classList.remove('anfitrion');
+    
+    // Limpiar controles del anfitrión
+    const controlesAnfitrion = document.getElementById('controlesAnfitrion');
+    if (controlesAnfitrion) controlesAnfitrion.classList.add('oculta');
+    
+    // Resetear botón de pausa
+    const btnPausar = document.getElementById('btnPausar');
+    if (btnPausar) {
+        btnPausar.dataset.pausado = 'false';
+        btnPausar.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+    }
+    
+    console.log('✅ Datos de sala limpiados completamente');
+}
+
 // Función para mostrar notificaciones temporales (se auto-ocultan más rápido)
 function mostrarNotificacionTemporal(mensaje, tipo = 'info', duracion = 1500) {
     const ahora = Date.now();
@@ -1493,11 +1693,7 @@ function iniciarJuegoRapido() {
 
 function volverInicio() {
     mostrarPantalla('pantallaInicio');
-    salaActual = null;
-    jugadorActual = null;
-    tablaSeleccionada = null;
-    numerosMarcados = [];
-    numerosCantados = [];
+    limpiarDatosSala();
 }
 
 function pausarJuego() {
@@ -1993,6 +2189,8 @@ function verificarEmpate(ganador) {
             numeroGanador: ganador.numeroGanador
         };
         
+        console.log(`🎲 Empate detectado entre ${jugadoresEmpatados.length} jugadores en ${ganador.patron} con número ${ganador.numeroGanador}`);
+        
         // Programar tiebreak para después del temporizador del modal
         setTimeout(() => {
             iniciarTiebreak(dataEmpate);
@@ -2002,38 +2200,14 @@ function verificarEmpate(ganador) {
 
 // Función para iniciar el tiebreak
 function iniciarTiebreak(dataEmpate) {
+    console.log('🎯 Iniciando tiebreak...', dataEmpate);
+    
     // Cerrar el modal de bingo si está abierto
     const modalBingo = document.getElementById('modalBingo');
     if (modalBingo && !modalBingo.classList.contains('oculta')) {
         modalBingo.classList.add('oculta');
     }
     
-    // Iniciar el tiebreak
+    // Iniciar el tiebreak con animación secuencial
     manejarTiebreakIniciado(dataEmpate);
-    
-    // Simular el proceso de tiro de dados
-    setTimeout(() => {
-        // Simular resultado del tiebreak
-        const resultadoTiebreak = {
-            tiradas: dataEmpate.jugadoresEmpatados.map(j => ({
-                jugadorId: j.jugador.id,
-                nombre: j.jugador.nombre,
-                dice1: Math.floor(Math.random() * 6) + 1,
-                dice2: Math.floor(Math.random() * 6) + 1
-            })),
-            ganador: null
-        };
-        
-        // Calcular ganador (suma más alta)
-        let maxSuma = 0;
-        resultadoTiebreak.tiradas.forEach(t => {
-            const suma = t.dice1 + t.dice2;
-            if (suma > maxSuma) {
-                maxSuma = suma;
-                resultadoTiebreak.ganador = { jugadorId: t.jugadorId };
-            }
-        });
-        
-        manejarTiebreakResultado(resultadoTiebreak);
-    }, 4000);
 }
