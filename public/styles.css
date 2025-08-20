@@ -1020,6 +1020,17 @@ body {
     overflow: hidden;
 }
 
+/* Cada dado tiene su propia animación independiente */
+.dice-pair-result .dice:nth-child(1) { animation-delay: 0s; }
+.dice-pair-result .dice:nth-child(2) { animation-delay: 0.5s; }
+
+/* Animaciones para iconos de dados dentro de cada contenedor */
+.dice i { 
+    animation: diceSpin 1.5s ease-in-out; 
+}
+.dice:nth-child(1) i { animation-delay: 0s; }
+.dice:nth-child(2) i { animation-delay: 0.3s; }
+
 .dice::before {
     content: '';
     position: absolute;
@@ -3556,6 +3567,95 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     .patron-nombre {
         font-size: 0.8rem;
     }
+
+/* Modal de victoria sin empate */
+.modal-victoria-sin-empate {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-victoria-sin-empate.oculta {
+    display: none;
+}
+
+.modal-victoria-sin-empate .modal-contenido {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    animation: scaleIn 0.4s ease-out;
+}
+
+.modal-victoria-sin-empate .modal-header h2 {
+    color: #ffd700;
+    font-size: 2rem;
+    margin: 0 0 20px 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.modal-victoria-sin-empate .ganadores-info {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-victoria-sin-empate .ganador-item {
+    color: white;
+    font-size: 1.2rem;
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border-left: 4px solid #ffd700;
+}
+
+.modal-victoria-sin-empate .mensaje-continuacion {
+    color: #90EE90;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(144, 238, 144, 0.2);
+    border-radius: 10px;
+    border: 1px solid rgba(144, 238, 144, 0.3);
+}
+
+.modal-victoria-sin-empate .mensaje-continuacion.con-empates {
+    color: #FFD700;
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
 
 /* Indicador de victoria confirmada */
 .indicador-victoria-confirmada {

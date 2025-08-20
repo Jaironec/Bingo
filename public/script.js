@@ -848,7 +848,7 @@ function manejarBingoDeclarado(ganador) {
         agregarPatronGanadoAlModal(ganador);
     } else {
         // Mostrar nuevo modal
-        mostrarModalBingo(ganador);
+    mostrarModalBingo(ganador);
     }
     
     if (salaActual) {
@@ -937,16 +937,28 @@ function manejarTiebreakResultado(payload) {
     // Mensaje final
     msg.textContent = `¡Desempate completado! El ganador se muestra arriba.`;
     
-    // Crear las tarjetas de resultados con animación escalonada
+    // Crear las tarjetas de resultados con animación SECUENCIAL LENTA
     lista.innerHTML = '';
-    payload.tiradas.forEach((t, index) => {
+    mostrarDadosSecuencialmente(payload.tiradas, payload.ganador, lista);
+    
+    // El servidor reanuda automáticamente después de 8 segundos (más tiempo)
+    setTimeout(() => {
+        modal.classList.add('oculta');
+        limpiarEstadoTiebreak();
+    }, 8000);
+}
+
+// Función para mostrar dados secuencialmente (más lento)
+function mostrarDadosSecuencialmente(tiradas, ganador, contenedor) {
+    console.log('🎲 Mostrando dados secuencialmente...');
+    
+    tiradas.forEach((t, index) => {
+        // Pausa más larga entre cada jugador (2 segundos para consistencia)
         setTimeout(() => {
             const card = document.createElement('div');
             card.className = 'dice-card';
             
-            // El servidor envía solo un dado por jugador, no dos
-            const roll = t.roll;
-            const esGanador = payload.ganador && payload.ganador.jugadorId === t.jugadorId;
+            const esGanador = ganador && ganador.jugadorId === t.jugadorId;
             
             card.innerHTML = `
                 <div class='name'>${t.nombre}</div>
@@ -962,22 +974,15 @@ function manejarTiebreakResultado(payload) {
                 ${esGanador ? '<div class="winner-badge">🏆 ¡GANADOR!</div>' : ''}
             `;
             
-            lista.appendChild(card);
+            contenedor.appendChild(card);
             
-            // Animar la entrada de la tarjeta
+            // Animar la entrada de la tarjeta con efecto más lento
             setTimeout(() => {
-                card.style.animation = 'slideInUp 0.6s ease forwards';
-            }, 100);
+                card.style.animation = 'slideInUp 0.8s ease forwards';
+            }, 200);
             
-        }, index * 300); // Entrada escalonada más lenta
+        }, index * 2000); // 2 segundos entre cada jugador (consistente y lento)
     });
-    
-    // El servidor reanuda automáticamente después de 5 segundos
-    // Solo cerrar el modal cuando se reanude el juego
-    setTimeout(() => {
-        modal.classList.add('oculta');
-        limpiarEstadoTiebreak();
-    }, 5000);
 }
 
 // Función para limpiar completamente el estado del tiebreak
@@ -1052,7 +1057,13 @@ function crearDadoHTML(numero) {
     ];
     
     const icono = iconosDado[numero - 1] || 'fas fa-dice-one';
-    return `<i class="${icono}"></i>`;
+    
+    // Generar ID único para cada dado para animación independiente
+    const timestamp = Date.now();
+    const random = Math.random();
+    const dadoId = 'dado_' + timestamp + '_' + Math.floor(random * 100000);
+    
+    return `<i class="${icono}" id="${dadoId}"></i>`;
 }
 
 function iniciarCuentaRegresivaFinal(segundos) {
@@ -1118,7 +1129,7 @@ function mostrarModalGanadoresFinal(ganadoresExternos = null) {
         if (btnCerrar) {
             btnCerrar.onclick = () => {
                 console.log('✅ Usuario cerró modal de ganadores finales');
-                modal.classList.add('oculta');
+        modal.classList.add('oculta');
                 // NO redirigir al inicio, solo cerrar el modal
             };
         }
@@ -1230,9 +1241,11 @@ function manejarEstadoJuego(data) {
         // Ocultar indicador de pausa por empate
         mostrarIndicadorPausaEmpate(false);
         
-        // Solo mostrar notificación para tiebreak, no para sinEmpate (ya se maneja en victoriaSinEmpate)
+        // Mostrar notificación según el motivo de reanudación
         if (data.por && data.por.includes('tiebreak')) {
             mostrarNotificacion('¡Juego reanudado después del desempate!', 'exito');
+        } else if (data.por && data.por.includes('victoriaUnica')) {
+            mostrarNotificacion('¡Juego reanudado después de la victoria!', 'exito');
         }
     }
 }
@@ -1964,7 +1977,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     notificacion.style.opacity = '0';
     notificacion.style.transform = 'translateX(100%)';
     notificaciones.appendChild(notificacion);
-    
+
     // Animar entrada
     setTimeout(() => {
         notificacion.style.transition = 'all 0.3s ease';
@@ -1988,7 +2001,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
         notificacion.style.transform = 'translateX(100%)';
         setTimeout(() => {
             if (notificacion.parentNode) {
-                notificacion.remove();
+        notificacion.remove();
             }
         }, 300);
     }, 2500); // Reducido de 4000 a 2500ms
@@ -2064,6 +2077,10 @@ function limpiarDatosSala() {
     
     const indicadorVictoria = document.getElementById('indicadorVictoriaConfirmada');
     if (indicadorVictoria) indicadorVictoria.classList.add('oculta');
+    
+    // Limpiar modal de victoria sin empate
+    const modalVictoria = document.getElementById('modalVictoriaSinEmpate');
+    if (modalVictoria) modalVictoria.classList.add('oculta');
     
     // Remover clases del body
     document.body.classList.remove('anfitrion');
@@ -2690,30 +2707,12 @@ function agregarEventoHistorialOffline(texto) {
     while (lista.childElementCount>20) lista.lastElementChild.remove();
 }
 
-// El servidor maneja automáticamente el tiebreak, no necesitamos estas funciones
+// El servidor maneja automáticamente el tiebreak con lógica mejorada
 
 // Función para manejar victoria sin empate (más visible)
 function manejarVictoriaSinEmpate(data) {
     console.log('🏆 Victoria sin empate:', data);
-    
-    // Crear mensaje detallado con los ganadores
-    let mensajeDetallado = '🎉 ¡VICTORIA CONFIRMADA!\n\n';
-    
-    if (data.ganadores && data.ganadores.length > 0) {
-        mensajeDetallado += '🏆 GANADORES:\n';
-        data.ganadores.forEach(ganador => {
-            mensajeDetallado += `• ${ganador.nombre}: ${ganador.tipo}\n`;
-        });
-        mensajeDetallado += '\n✅ No hubo empate, el juego continúa.';
-    } else {
-        mensajeDetallado += '✅ No hubo empate, el juego continúa.';
-    }
-    
-    // Mostrar notificación detallada
-    mostrarNotificacion(mensajeDetallado, 'exito');
-    
-    // Agregar evento al historial con emoji especial
-    agregarEventoHistorial(`🏆 Victoria confirmada - ${data.ganadores?.length || 0} ganador(es)`);
+    console.log('🎲 Hay empates pendientes:', data.hayEmpates);
     
     // Cerrar inmediatamente el modal de bingo si está abierto
     const modalBingo = document.getElementById('modalBingo');
@@ -2721,8 +2720,59 @@ function manejarVictoriaSinEmpate(data) {
         modalBingo.classList.add('oculta');
     }
     
+    // Mostrar modal de victoria sin empate (más visible)
+    mostrarModalVictoriaSinEmpate(data.ganadores, data.hayEmpates || false, data.esTablaLlena || false);
+    
+    // Agregar evento al historial con emoji especial
+    const mensajeHistorial = data.hayEmpates ? 
+        `🏆 Victoria confirmada - ${data.ganadores?.length || 0} ganador(es) (empates pendientes)` :
+        `🏆 Victoria confirmada - ${data.ganadores?.length || 0} ganador(es)`;
+    agregarEventoHistorial(mensajeHistorial);
+    
     // Mostrar indicador visual de victoria confirmada
     mostrarIndicadorVictoriaConfirmada();
+}
+
+// Función para mostrar modal de victoria sin empate (más visible)
+function mostrarModalVictoriaSinEmpate(ganadores, hayEmpates = false, esTablaLlena = false) {
+    // Obtener modal que ya existe en el HTML
+    const modal = document.getElementById('modalVictoriaSinEmpate');
+    
+    if (!modal) {
+        console.error('❌ Modal de victoria sin empate no encontrado en el HTML');
+        return;
+    }
+    
+    // Actualizar contenido del modal
+    const ganadoresInfo = modal.querySelector('.ganadores-info');
+    const mensajeContinuacion = modal.querySelector('.mensaje-continuacion');
+    
+    if (ganadoresInfo) {
+        ganadoresInfo.innerHTML = ganadores && ganadores.length > 0 ? 
+            ganadores.map(g => `<div class="ganador-item">• ${g.nombre}: ${g.tipo}</div>`).join('') : 
+            'Información de ganadores no disponible';
+    }
+    
+    if (mensajeContinuacion) {
+        if (hayEmpates) {
+            mensajeContinuacion.className = 'mensaje-continuacion con-empates';
+            mensajeContinuacion.textContent = '🎲 Algunos patrones continúan en desempate...';
+        } else if (esTablaLlena) {
+            mensajeContinuacion.className = 'mensaje-continuacion';
+            mensajeContinuacion.textContent = '🏁 Fin del juego, ¡tabla llena!';
+        } else {
+            mensajeContinuacion.className = 'mensaje-continuacion';
+            mensajeContinuacion.textContent = '✅ No hubo empate, el juego continúa en 4 segundos...';
+        }
+    }
+    
+    // Mostrar modal
+    modal.classList.remove('oculta');
+    
+    // Ocultar después de 4 segundos
+    setTimeout(() => {
+        modal.classList.add('oculta');
+    }, 4000);
 }
 
 // Función para mostrar indicador visual de victoria confirmada

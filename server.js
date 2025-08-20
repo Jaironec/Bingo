@@ -208,10 +208,40 @@ function resolverTiebreak(salaId) {
     }
   });
 
-  // PASO 4: Resolver empates con dados
+  // PASO 4: Resolver empates con dados (si existen)
   if (empatesReales.length > 0) {
     console.log(`🎲 Resolviendo ${empatesReales.length} empates con dados`);
-    resolverEmpatesConDados(empatesReales, salaId, sala);
+    
+    // Si hay ganadores únicos, mostrar primero su victoria, luego resolver empates
+    if (ganadoresUnicos.length > 0) {
+      console.log(`🎭 Mostrando victorias únicas primero, luego empates`);
+      // Pausar para mostrar victorias únicas
+      sala.juegoActivo = false;
+      
+      // Emitir evento de victoria sin empate para los ganadores únicos
+      const ganadoresUnicosInfo = ganadoresUnicos.map(g => ({
+        nombre: g.jugador.nombre,
+        patron: g.patron,
+        tipo: g.resultado.tipo
+      }));
+      
+      io.to(salaId).emit('victoriaSinEmpate', { 
+        mensaje: '¡Victorias confirmadas! Algunos patrones continúan en desempate.',
+        ganadores: ganadoresUnicosInfo,
+        timestamp: Date.now(),
+        hayEmpates: true // Indicador de que hay empates pendientes
+      });
+      
+      // Después de 4 segundos, resolver los empates
+      setTimeout(() => {
+        resolverEmpatesConDados(empatesReales, salaId, sala);
+      }, 4000);
+      
+    } else {
+      // Solo empates, resolver directamente
+      resolverEmpatesConDados(empatesReales, salaId, sala);
+    }
+    
   } else {
     // No hay empates - reanudar inmediatamente
     console.log(`✅ No hay empates - reanudando juego inmediatamente`);
@@ -236,6 +266,9 @@ function resolverTiebreak(salaId) {
       ganadores: todosLosGanadores,
       esTablaLlena: true
     });
+    
+    // NO reanudar el juego - tabla llena termina la partida
+    return;
   }
 }
 
@@ -312,9 +345,14 @@ function resolverEmpatesConDados(empatesReales, salaId, sala) {
     console.log(`🎲 Resolviendo empate en ${empate.patron} entre ${empate.jugadores.length} jugadores`);
     
     // Lanzar DOS dados para cada jugador en este patrón
-    const tiradas = empate.jugadores.map(j => {
-      const dado1 = Math.floor(Math.random() * 6) + 1;
-      const dado2 = Math.floor(Math.random() * 6) + 1;
+    const tiradas = empate.jugadores.map((j, index) => {
+      // Usar múltiples fuentes de aleatoriedad para cada dado independiente
+      const base = Date.now() + Math.random() * 1000;
+      const seed1 = base + index * 1337 + Math.random() * 999;
+      const seed2 = base + index * 2671 + Math.random() * 888;
+      
+      const dado1 = Math.floor((seed1 * 9301 + 49297) % 233280) % 6 + 1;
+      const dado2 = Math.floor((seed2 * 49297 + 9301) % 233280) % 6 + 1;
       const total = dado1 + dado2; // Suma de dos dados (2-12)
       
       return {
@@ -333,9 +371,14 @@ function resolverEmpatesConDados(empatesReales, salaId, sala) {
     let intentos = 0;
     
     while (top.length > 1 && intentos < 5) {
-      top = top.map(t => {
-        const dado1 = Math.floor(Math.random() * 6) + 1;
-        const dado2 = Math.floor(Math.random() * 6) + 1;
+      top = top.map((t, index) => {
+        // Usar múltiples fuentes de aleatoriedad para cada re-roll independiente
+        const base = Date.now() + Math.random() * 1000 + intentos * 777;
+        const seed1 = base + index * 4201 + Math.random() * 555;
+        const seed2 = base + index * 7919 + Math.random() * 333;
+        
+        const dado1 = Math.floor((seed1 * 9301 + 49297) % 233280) % 6 + 1;
+        const dado2 = Math.floor((seed2 * 49297 + 9301) % 233280) % 6 + 1;
         return { ...t, dado1, dado2, total: dado1 + dado2 };
       });
       max = Math.max(...top.map(t => t.total));
@@ -400,18 +443,45 @@ function resolverEmpatesConDados(empatesReales, salaId, sala) {
     }
   });
   
-  // Reanudar después de 5s para dar tiempo a ver el modal
+  // Verificar si alguien ganó tabla llena después del tiebreak
+  const huboTablaLlena = winnersToEmit.some(g => g.patron === 'tablaLlena');
+  if (huboTablaLlena) {
+    console.log(`🎯 Tabla llena ganada después del tiebreak - fin del juego`);
+    sala.juegoActivo = false;
+    
+    // Emitir evento de fin de juego
+    const todosLosGanadores = sala.ganadores.map(g => ({
+      nombre: g.jugador.nombre,
+      patron: g.patron,
+      tipo: g.resultado.tipo,
+      numeroGanador: g.numeroGanador
+    }));
+    
+    io.to(salaId).emit('juegoTerminado', { 
+      mensaje: '¡Tabla Llena! Fin del juego',
+      ganadores: todosLosGanadores,
+      esTablaLlena: true
+    });
+    
+    // NO reanudar - tabla llena termina la partida
+    return;
+  }
+  
+  console.log(`🎲 Empates resueltos, reanudando juego en 8 segundos...`);
+  
+  // Reanudar después de 8s para dar tiempo a ver el modal completo y lento
   setTimeout(() => {
     if (!sala) return;
     sala.juegoActivo = true;
     io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'tiebreak' });
     io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
-  }, 5000);
+  }, 8000);
 }
 
 // Función para reanudar sin empate
 function reanudarJuegoSinEmpate(salaId, sala) {
-  sala.juegoActivo = true;
+  // NO reanudar inmediatamente - pausar para mostrar la victoria
+  sala.juegoActivo = false;
   
   // Obtener información de los ganadores únicos para el mensaje detallado
   const ganadoresUnicos = [];
@@ -425,15 +495,44 @@ function reanudarJuegoSinEmpate(salaId, sala) {
     }
   });
   
+  // Verificar si alguno de los ganadores únicos ganó tabla llena
+  const hayTablaLlenaUnica = ganadoresUnicos.some(g => g.patron === 'tablaLlena');
+  
   // Emitir evento especial para victoria sin empate con detalles
   io.to(salaId).emit('victoriaSinEmpate', { 
-    mensaje: '¡Victoria confirmada! No hubo empate, el juego continúa.',
+    mensaje: hayTablaLlenaUnica ? '¡Victoria confirmada! Fin del juego.' : '¡Victoria confirmada! No hubo empate, el juego continúa.',
     ganadores: ganadoresUnicos,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    esTablaLlena: hayTablaLlenaUnica
   });
   
-  // Reanudar el juego (sin notificación adicional para evitar spam)
-  sala.juegoActivo = true;
+  if (hayTablaLlenaUnica) {
+    // Si es tabla llena, terminar el juego
+    setTimeout(() => {
+      if (!sala) return;
+      
+      const todosLosGanadores = sala.ganadores.map(g => ({
+        nombre: g.jugador.nombre,
+        patron: g.patron,
+        tipo: g.resultado.tipo,
+        numeroGanador: g.numeroGanador
+      }));
+      
+      io.to(salaId).emit('juegoTerminado', { 
+        mensaje: '¡Tabla Llena! Fin del juego',
+        ganadores: todosLosGanadores,
+        esTablaLlena: true
+      });
+    }, 4000);
+  } else {
+    // Reanudar después de 4 segundos para que se vea bien la victoria
+    setTimeout(() => {
+      if (!sala) return;
+      sala.juegoActivo = true;
+      io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'victoriaUnica' });
+      io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+    }, 4000);
+  }
 }
 
 // Manejo de conexiones Socket.IO
