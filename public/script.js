@@ -948,30 +948,29 @@ function manejarTiebreakResultado(payload) {
     }, 8000);
 }
 
-// Función para mostrar dados secuencialmente (más lento)
+// Función para mostrar dados secuencialmente (más lento y emocionante)
 function mostrarDadosSecuencialmente(tiradas, ganador, contenedor) {
     console.log('🎲 Mostrando dados secuencialmente...');
     
+    // Primero mostrar todos los dados SIN revelar el ganador
     tiradas.forEach((t, index) => {
-        // Pausa más larga entre cada jugador (2 segundos para consistencia)
         setTimeout(() => {
             const card = document.createElement('div');
             card.className = 'dice-card';
             
-            const esGanador = ganador && ganador.jugadorId === t.jugadorId;
-            
+            // NO mostrar si es ganador todavía - mantener la intriga
             card.innerHTML = `
                 <div class='name'>${t.nombre}</div>
                 <div class='dice-pair-result'>
-                    <div class='dice ${esGanador ? 'winner' : ''}'>
+                    <div class='dice'>
                         ${crearDadoHTML(t.dado1)}
                     </div>
-                    <div class='dice ${esGanador ? 'winner' : ''}'>
+                    <div class='dice'>
                         ${crearDadoHTML(t.dado2)}
                     </div>
                 </div>
                 <div class='dice-sum'>Total: ${t.total}</div>
-                ${esGanador ? '<div class="winner-badge">🏆 ¡GANADOR!</div>' : ''}
+                <div class='ganador-oculto' style='opacity: 0;'>🏆 ¡GANADOR!</div>
             `;
             
             contenedor.appendChild(card);
@@ -981,8 +980,37 @@ function mostrarDadosSecuencialmente(tiradas, ganador, contenedor) {
                 card.style.animation = 'slideInUp 0.8s ease forwards';
             }, 200);
             
-        }, index * 2000); // 2 segundos entre cada jugador (consistente y lento)
+        }, index * 2000); // 2 segundos entre cada jugador
     });
+    
+    // DESPUÉS de mostrar todos los dados, revelar el ganador con delay adicional
+    const tiempoTotal = tiradas.length * 2000 + 2000; // 2s extra para la revelación
+    
+    setTimeout(() => {
+        console.log('🏆 ¡Revelando ganador!');
+        
+        // Encontrar la tarjeta del ganador y mostrarla
+        const cards = contenedor.querySelectorAll('.dice-card');
+        cards.forEach((card, index) => {
+            const tirada = tiradas[index];
+            if (ganador && ganador.jugadorId === tirada.jugadorId) {
+                // Marcar como ganador
+                const dados = card.querySelectorAll('.dice');
+                dados.forEach(dado => dado.classList.add('winner'));
+                
+                // Mostrar badge de ganador con animación
+                const badge = card.querySelector('.ganador-oculto');
+                if (badge) {
+                    badge.style.opacity = '1';
+                    badge.style.animation = 'winnerPulse 2s ease-in-out infinite';
+                    badge.textContent = '🏆 ¡GANADOR!';
+                }
+                
+                // Agregar clase winner a la tarjeta
+                card.classList.add('winner-card');
+            }
+        });
+    }, tiempoTotal);
 }
 
 // Función para limpiar completamente el estado del tiebreak
@@ -2713,6 +2741,14 @@ function agregarEventoHistorialOffline(texto) {
 function manejarVictoriaSinEmpate(data) {
     console.log('🏆 Victoria sin empate:', data);
     console.log('🎲 Hay empates pendientes:', data.hayEmpates);
+    console.log('🏆 Ganadores recibidos:', data.ganadores);
+    console.log('🏆 Es tabla llena:', data.esTablaLlena);
+    
+    // Verificar que los datos sean válidos
+    if (!data.ganadores || !Array.isArray(data.ganadores) || data.ganadores.length === 0) {
+        console.error('❌ No se recibieron ganadores válidos:', data.ganadores);
+        return;
+    }
     
     // Cerrar inmediatamente el modal de bingo si está abierto
     const modalBingo = document.getElementById('modalBingo');
@@ -2729,12 +2765,27 @@ function manejarVictoriaSinEmpate(data) {
         `🏆 Victoria confirmada - ${data.ganadores?.length || 0} ganador(es)`;
     agregarEventoHistorial(mensajeHistorial);
     
-    // Mostrar indicador visual de victoria confirmada
-    mostrarIndicadorVictoriaConfirmada();
+    // NO mostrar indicador visual extra - solo modal + historial
 }
 
-// Función para mostrar modal de victoria sin empate (más visible)
+// Función para mostrar modal de victoria sin empate (como el modal de bingo original)
 function mostrarModalVictoriaSinEmpate(ganadores, hayEmpates = false, esTablaLlena = false) {
+    // Validaciones de entrada
+    if (!Array.isArray(ganadores)) {
+        console.warn('⚠️ Ganadores no es un array:', ganadores);
+        ganadores = [];
+    }
+    
+    if (typeof hayEmpates !== 'boolean') {
+        console.warn('⚠️ hayEmpates no es un boolean:', hayEmpates);
+        hayEmpates = false;
+    }
+    
+    if (typeof esTablaLlena !== 'boolean') {
+        console.warn('⚠️ esTablaLlena no es un boolean:', esTablaLlena);
+        esTablaLlena = false;
+    }
+    
     // Obtener modal que ya existe en el HTML
     const modal = document.getElementById('modalVictoriaSinEmpate');
     
@@ -2743,16 +2794,99 @@ function mostrarModalVictoriaSinEmpate(ganadores, hayEmpates = false, esTablaLle
         return;
     }
     
-    // Actualizar contenido del modal
-    const ganadoresInfo = modal.querySelector('.ganadores-info');
+    // Obtener elementos del modal
+    const mensaje = modal.querySelector('#mensajeVictoria');
+    const detalles = modal.querySelector('#detallesVictoria');
     const mensajeContinuacion = modal.querySelector('.mensaje-continuacion');
     
-    if (ganadoresInfo) {
-        ganadoresInfo.innerHTML = ganadores && ganadores.length > 0 ? 
-            ganadores.map(g => `<div class="ganador-item">• ${g.nombre}: ${g.tipo}</div>`).join('') : 
-            'Información de ganadores no disponible';
+    if (ganadores && ganadores.length > 0) {
+        const ganador = ganadores[0]; // Tomar el primer ganador para mostrar tabla
+        
+        // Mensaje principal
+        if (mensaje) {
+            mensaje.textContent = `¡${ganador.nombre} ha ganado!`;
+            
+            // Agregar contador de patrones ganados
+            const contadorPatrones = document.createElement('div');
+            contadorPatrones.className = 'contador-patrones';
+            contadorPatrones.innerHTML = `<span class="badge-contador">${ganadores.length} patrón(es) ganado(s)</span>`;
+            mensaje.appendChild(contadorPatrones);
+        }
+        
+        // Detalles con tabla del ganador (si está disponible)
+        if (detalles) {
+            let tablaHTML = '';
+            
+            // Buscar el jugador en la sala actual para obtener su tabla
+            // Intentar múltiples fuentes de datos
+            let jugadorSala = null;
+            
+            // 1. Buscar en salaActual si existe
+            if (typeof salaActual !== 'undefined' && salaActual && salaActual.jugadores) {
+                jugadorSala = salaActual.jugadores.find(j => j.nombre === ganador.nombre);
+            }
+            
+            // 2. Si no se encontró, buscar en window.salaActual
+            if (!jugadorSala && typeof window.salaActual !== 'undefined' && window.salaActual && window.salaActual.jugadores) {
+                jugadorSala = window.salaActual.jugadores.find(j => j.nombre === ganador.nombre);
+            }
+            
+            // 3. Si aún no se encontró, buscar en cualquier variable global de sala
+            if (!jugadorSala && typeof window.sala !== 'undefined' && window.sala && window.sala.jugadores) {
+                jugadorSala = window.sala.jugadores.find(j => j.nombre === ganador.nombre);
+            }
+            
+            console.log('🔍 Buscando jugador:', ganador.nombre);
+            console.log('🔍 Jugador encontrado:', jugadorSala);
+            console.log('🔍 Sala actual disponible:', typeof salaActual !== 'undefined' ? salaActual : 'No definida');
+            
+            if (jugadorSala && jugadorSala.tablaSeleccionada) {
+                console.log('✅ Tabla del jugador encontrada:', jugadorSala.tablaSeleccionada);
+                tablaHTML = `
+                    <div class="tabla-ganador">
+                        <h4>Tabla del Ganador:</h4>
+                        <div class="tabla-bingo-mini">
+                            ${jugadorSala.tablaSeleccionada.numeros.map((fila, filaIndex) => 
+                                fila.map((celda, colIndex) => {
+                                    const esMarcado = jugadorSala.numerosMarcados.includes(celda.numero) || celda.esLibre;
+                                    const base = celda.esLibre ? '<span class="numero free"><i class="fas fa-star"></i></span>' : `<span class="numero${esMarcado ? ' marcado' : ''}">${celda.numero}</span>`;
+                                    return base;
+                                }).join('')
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                console.log('⚠️ No se pudo encontrar la tabla del jugador');
+                tablaHTML = `
+                    <div class="tabla-ganador">
+                        <h4>Tabla del Ganador:</h4>
+                        <p style="color: #718096; font-style: italic;">Tabla no disponible en este momento</p>
+                    </div>
+                `;
+            }
+            
+            detalles.innerHTML = `
+                <div class="patrones-ganados-container">
+                    <h4>Patrones Ganados:</h4>
+                    <div class="patrones-ganados">
+                        ${ganadores.map(g => `
+                            <div class="patron-ganado">
+                                <i class="fas fa-trophy"></i>
+                                <span>${g.tipo}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ${tablaHTML}
+            `;
+        }
+    } else {
+        if (mensaje) mensaje.textContent = '¡Victoria confirmada!';
+        if (detalles) detalles.innerHTML = '<p>Información de ganadores no disponible</p>';
     }
     
+    // Mensaje de continuación
     if (mensajeContinuacion) {
         if (hayEmpates) {
             mensajeContinuacion.className = 'mensaje-continuacion con-empates';
@@ -2762,42 +2896,81 @@ function mostrarModalVictoriaSinEmpate(ganadores, hayEmpates = false, esTablaLle
             mensajeContinuacion.textContent = '🏁 Fin del juego, ¡tabla llena!';
         } else {
             mensajeContinuacion.className = 'mensaje-continuacion';
-            mensajeContinuacion.textContent = '✅ No hubo empate, el juego continúa en 4 segundos...';
+            mensajeContinuacion.textContent = '✅ No hubo empate, el juego continúa en 5 segundos...';
         }
     }
     
     // Mostrar modal
     modal.classList.remove('oculta');
     
-    // Ocultar después de 4 segundos
-    setTimeout(() => {
-        modal.classList.add('oculta');
-    }, 4000);
+    // Configurar botón de cerrar (deshabilitado durante 5 segundos)
+    const btnCerrar = modal.querySelector('#btnCerrarVictoriaSinEmpate');
+    if (btnCerrar) {
+        // Deshabilitar botón inicialmente
+        btnCerrar.disabled = true;
+        btnCerrar.style.opacity = '0.5';
+        btnCerrar.style.cursor = 'not-allowed';
+        
+        // Ocultar después de 5 segundos (solo si no es tabla llena)
+        if (!esTablaLlena) {
+            setTimeout(() => {
+                if (!modal.classList.contains('oculta')) {
+                    // Habilitar botón después de 5 segundos
+                    btnCerrar.disabled = false;
+                    btnCerrar.style.opacity = '1';
+                    btnCerrar.style.cursor = 'pointer';
+                    
+                    // Cerrar modal automáticamente
+                    modal.classList.add('oculta');
+                }
+            }, 5000);
+        } else {
+            // Si es tabla llena, habilitar botón inmediatamente
+            btnCerrar.disabled = false;
+            btnCerrar.style.opacity = '1';
+            btnCerrar.style.cursor = 'pointer';
+        }
+        
+        // Configurar evento de cerrar
+        btnCerrar.onclick = () => {
+            modal.classList.add('oculta');
+        };
+    }
 }
 
-// Función para mostrar indicador visual de victoria confirmada
-function mostrarIndicadorVictoriaConfirmada() {
-    // Crear o mostrar indicador de victoria confirmada
-    let indicador = document.getElementById('indicadorVictoriaConfirmada');
-    
-    if (!indicador) {
-        indicador = document.createElement('div');
-        indicador.id = 'indicadorVictoriaConfirmada';
-        indicador.className = 'indicador-victoria-confirmada';
-        indicador.innerHTML = `
-            <div class="indicador-contenido">
-                <i class="fas fa-trophy"></i>
-                <span>¡VICTORIA CONFIRMADA!</span>
-            </div>
-        `;
-        document.body.appendChild(indicador);
+// Función para mostrar modal de confirmación genérico
+function mostrarConfirmacion(titulo, mensaje, onConfirm, onCancel = null) {
+    const modal = document.getElementById('modalConfirmacion');
+    if (!modal) {
+        console.error('❌ Modal de confirmación no encontrado');
+        return;
     }
     
-    // Mostrar el indicador
-    indicador.classList.remove('oculta');
+    const tituloEl = modal.querySelector('#tituloConfirmacion');
+    const mensajeEl = modal.querySelector('#mensajeConfirmacion');
+    const btnConfirmar = modal.querySelector('#btnConfirmarAccion');
+    const btnCancelar = modal.querySelector('#btnCancelarConfirmacion');
     
-    // Ocultar después de 3 segundos
-    setTimeout(() => {
-        indicador.classList.add('oculta');
-    }, 3000);
+    if (tituloEl) tituloEl.innerHTML = titulo;
+    if (mensajeEl) mensajeEl.textContent = mensaje;
+    
+    // Configurar eventos
+    btnConfirmar.onclick = () => {
+        modal.classList.add('oculta');
+        if (typeof onConfirm === 'function') {
+            onConfirm();
+        }
+    };
+    
+    btnCancelar.onclick = () => {
+        modal.classList.add('oculta');
+        if (typeof onCancel === 'function') {
+            onCancel();
+        }
+    };
+    
+    modal.classList.remove('oculta');
 }
+
+// Función para mostrar indicador visual de victoria confirmada (ELIMINADA - NO SE USA)
+// Solo modal + historial para evitar spam de notificaciones

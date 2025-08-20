@@ -375,18 +375,20 @@
         </div>
 
         <!-- Modal de victoria sin empate -->
-        <div id="modalVictoriaSinEmpate" class="modal-victoria-sin-empate oculta">
-            <div class="modal-contenido">
+        <div id="modalVictoriaSinEmpate" class="modal oculta">
+            <div class="modal-content">
                 <div class="modal-header">
-                    <h2>🏆 ¡VICTORIA CONFIRMADA!</h2>
+                    <h3><i class="fas fa-trophy"></i> ¡VICTORIA CONFIRMADA!</h3>
                 </div>
                 <div class="modal-body">
-                    <div class="ganadores-info">
-                        <!-- Ganadores se insertarán aquí dinámicamente -->
-                    </div>
+                    <p id="mensajeVictoria"></p>
+                    <div id="detallesVictoria"></div>
                     <div class="mensaje-continuacion">
                         <!-- Mensaje de continuación dinámico -->
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCerrarVictoriaSinEmpate" class="btn btn-primary">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -421,6 +423,22 @@
                 <div class="modal-footer">
                     <button id="btnCancelarSalir" class="btn btn-secondary">Cancelar</button>
                     <button id="btnConfirmarSalir" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Salir</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación para acciones críticas -->
+        <div id="modalConfirmacion" class="modal oculta">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="tituloConfirmacion"><i class="fas fa-exclamation-triangle"></i> Confirmar Acción</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="mensajeConfirmacion">¿Estás seguro de que quieres realizar esta acción?</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnCancelarConfirmacion" class="btn btn-secondary">Cancelar</button>
+                    <button id="btnConfirmarAccion" class="btn btn-primary">Confirmar</button>
                 </div>
             </div>
         </div>

@@ -31,7 +31,7 @@ body {
 /* Hero Container - Pantalla de inicio */
 .hero-container {
     position: relative;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     display: flex;
     align-items: center;
@@ -1052,6 +1052,150 @@ body {
 .dice.winner i {
     color: #fff;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Tarjeta ganadora completa */
+.dice-card.winner-card {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    border: 3px solid #2f855a;
+    box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+    transform: scale(1.05);
+    transition: all 0.5s ease;
+}
+
+.dice-card.winner-card .name {
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dice-card.winner-card .dice-sum {
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Badge de ganador oculto que aparece */
+.ganador-oculto {
+    text-align: center;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #f6ad55, #ed8936);
+    padding: 8px 16px;
+    border-radius: 20px;
+    margin-top: 10px;
+    transition: all 0.5s ease;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos para el modal de victoria (como el modal de bingo original) */
+#modalVictoriaSinEmpate .contador-patrones {
+    margin-top: 10px;
+}
+
+#modalVictoriaSinEmpate .badge-contador {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 8px;
+}
+
+#modalVictoriaSinEmpate .patrones-ganados-container {
+    margin: 20px 0;
+}
+
+#modalVictoriaSinEmpate .patrones-ganados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#modalVictoriaSinEmpate .patron-ganado {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+#modalVictoriaSinEmpate .tabla-ganador {
+    margin-top: 20px;
+}
+
+#modalVictoriaSinEmpate .tabla-bingo-mini {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+    max-width: 300px;
+}
+
+#modalVictoriaSinEmpate .numero {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #2d3748;
+}
+
+#modalVictoriaSinEmpate .numero.marcado {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+    border-color: #2f855a;
+}
+
+#modalVictoriaSinEmpate .numero.free {
+    background: linear-gradient(135deg, #f6ad55, #ed8936);
+    color: white;
+    border-color: #c05621;
+}
+
+/* Mensaje de continuación en modal de victoria */
+#modalVictoriaSinEmpate .mensaje-continuacion {
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f7fafc, #edf2f7);
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+    text-align: center;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+#modalVictoriaSinEmpate .mensaje-continuacion.con-empates {
+    background: linear-gradient(135deg, #fef5e7, #fed7aa);
+    border-color: #f6ad55;
+    color: #c05621;
+}
+
+/* Botón deshabilitado en modal de victoria */
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #718096;
+    border-color: #718096;
+}
+
+.btn:disabled:hover {
+    background: #718096;
+    border-color: #718096;
+    transform: none;
+    box-shadow: none;
 }
 
 .dice i {
@@ -3569,7 +3713,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     }
 
 /* Modal de victoria sin empate */
-.modal-victoria-sin-empate {
+.modal .modal-victoria-sin-empate {
     position: fixed;
     top: 0;
     left: 0;
@@ -3583,11 +3727,38 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     animation: fadeIn 0.3s ease-out;
 }
 
-.modal-victoria-sin-empate.oculta {
+/* Responsive para modales */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95% !important;
+        margin: 10px !important;
+        padding: 20px !important;
+    }
+    
+    .modal-header h2,
+    .modal-header h3 {
+        font-size: 1.5rem !important;
+    }
+    
+    .modal-body {
+        padding: 15px 0 !important;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+.modal .modal-victoria-sin-empate.oculta {
     display: none;
 }
 
-.modal-victoria-sin-empate .modal-contenido {
+.modal .modal-victoria-sin-empate .modal-content {
     background: linear-gradient(135deg, #667eea, #764ba2);
     border-radius: 20px;
     padding: 30px;
@@ -3599,14 +3770,14 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     animation: scaleIn 0.4s ease-out;
 }
 
-.modal-victoria-sin-empate .modal-header h2 {
+.modal .modal-victoria-sin-empate .modal-header h2 {
     color: #ffd700;
     font-size: 2rem;
     margin: 0 0 20px 0;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.modal-victoria-sin-empate .ganadores-info {
+.modal .modal-victoria-sin-empate .ganadores-info {
     margin: 20px 0;
     padding: 20px;
     background: rgba(255, 255, 255, 0.1);
@@ -3614,7 +3785,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.modal-victoria-sin-empate .ganador-item {
+.modal .modal-victoria-sin-empate .ganador-item {
     color: white;
     font-size: 1.2rem;
     margin: 10px 0;
@@ -3624,7 +3795,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     border-left: 4px solid #ffd700;
 }
 
-.modal-victoria-sin-empate .mensaje-continuacion {
+.modal .modal-victoria-sin-empate .mensaje-continuacion {
     color: #90EE90;
     font-size: 1.1rem;
     font-weight: 600;
@@ -3635,7 +3806,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     border: 1px solid rgba(144, 238, 144, 0.3);
 }
 
-.modal-victoria-sin-empate .mensaje-continuacion.con-empates {
+.modal .modal-victoria-sin-empate .mensaje-continuacion.con-empates {
     color: #FFD700;
     background: rgba(255, 215, 0, 0.2);
     border: 1px solid rgba(255, 215, 0, 0.3);

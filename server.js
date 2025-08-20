@@ -26,7 +26,22 @@ const salas = new Map();
 
 // Generar código de sala de 4 dígitos
 function generarCodigoSala() {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  let codigo;
+  let intentos = 0;
+  const maxIntentos = 100;
+  
+  do {
+    codigo = Math.floor(1000 + Math.random() * 9000).toString();
+    intentos++;
+    
+    // Evitar bucle infinito
+    if (intentos > maxIntentos) {
+      console.error('❌ No se pudo generar código único después de', maxIntentos, 'intentos');
+      return '9999'; // Código de emergencia
+    }
+  } while (salas.has(codigo));
+  
+  return codigo;
 }
 
 // Generador de tablas de bingo
@@ -101,6 +116,32 @@ function generarTablasUnicas() {
   }
   
   return tablas;
+}
+
+// Función para validar entrada de datos
+function validarEntrada(data, camposRequeridos) {
+  if (!data || typeof data !== 'object') {
+    return { valido: false, error: 'Datos no proporcionados' };
+  }
+  
+  for (const campo of camposRequeridos) {
+    if (!data[campo]) {
+      return { valido: false, error: `Campo requerido: ${campo}` };
+    }
+  }
+  
+  return { valido: true };
+}
+
+// Función para sanitizar entrada de texto
+function sanitizarTexto(texto, maxLength = 50) {
+  if (typeof texto !== 'string') return '';
+  
+  // Remover caracteres peligrosos y limitar longitud
+  return texto
+    .replace(/[<>\"'&]/g, '')
+    .trim()
+    .substring(0, maxLength);
 }
 
 // Verificar patrones de bingo
@@ -523,20 +564,40 @@ function reanudarJuegoSinEmpate(salaId, sala) {
         ganadores: todosLosGanadores,
         esTablaLlena: true
       });
-    }, 4000);
+    }, 5000);
   } else {
-    // Reanudar después de 4 segundos para que se vea bien la victoria
+    // Reanudar después de 5 segundos para que se vea bien la victoria
     setTimeout(() => {
       if (!sala) return;
       sala.juegoActivo = true;
       io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'victoriaUnica' });
       io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
-    }, 4000);
+    }, 5000);
   }
 }
 
 // Manejo de conexiones Socket.IO
 io.on('connection', (socket) => {
+  // Middleware de validación para todos los eventos
+  socket.use((data, next) => {
+    try {
+      // Permitir arrays y objetos, solo rechazar datos completamente inválidos
+      if (data !== null && data !== undefined) {
+        next();
+      } else {
+        next(new Error('Datos inválidos'));
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Manejo de errores de socket
+  socket.on('error', (error) => {
+    console.error('❌ Error en socket:', error);
+    socket.emit('error', { mensaje: 'Error interno del servidor' });
+  });
+  
   // Declaración de bingo con botón único (ventana de espera y desempate)
   socket.on('declararBingoUnico', (data) => {
     const sala = salas.get(data.salaId);
