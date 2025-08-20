@@ -222,7 +222,20 @@ function resolverTiebreak(salaId) {
   const huboTablaLlena = sala.ganadores.some(g => g.patron === 'tablaLlena');
   if (huboTablaLlena) {
     sala.juegoActivo = false;
-    io.to(salaId).emit('juegoTerminado', { mensaje: '¡Tabla Llena! Fin del juego' });
+    
+    // Emitir evento especial para tabla llena con todos los ganadores
+    const todosLosGanadores = sala.ganadores.map(g => ({
+      nombre: g.jugador.nombre,
+      patron: g.patron,
+      tipo: g.resultado.tipo,
+      numeroGanador: g.numeroGanador
+    }));
+    
+    io.to(salaId).emit('juegoTerminado', { 
+      mensaje: '¡Tabla Llena! Fin del juego',
+      ganadores: todosLosGanadores,
+      esTablaLlena: true
+    });
   }
 }
 
@@ -298,41 +311,57 @@ function resolverEmpatesConDados(empatesReales, salaId, sala) {
   empatesReales.forEach(empate => {
     console.log(`🎲 Resolviendo empate en ${empate.patron} entre ${empate.jugadores.length} jugadores`);
     
-    // Lanzar dados para cada jugador en este patrón
-    const tiradas = empate.jugadores.map(j => ({
-      jugador: j.jugador,
-      patron: empate.patron,
-      resultado: j.resultado,
-      roll: Math.floor(Math.random() * 6) + 1
-    }));
+    // Lanzar DOS dados para cada jugador en este patrón
+    const tiradas = empate.jugadores.map(j => {
+      const dado1 = Math.floor(Math.random() * 6) + 1;
+      const dado2 = Math.floor(Math.random() * 6) + 1;
+      const total = dado1 + dado2; // Suma de dos dados (2-12)
+      
+      return {
+        jugador: j.jugador,
+        patron: empate.patron,
+        resultado: j.resultado,
+        dado1: dado1,
+        dado2: dado2,
+        total: total
+      };
+    });
     
     // Determinar ganador (con re-roll si es necesario)
-    let max = Math.max(...tiradas.map(t => t.roll));
-    let top = tiradas.filter(t => t.roll === max);
+    let max = Math.max(...tiradas.map(t => t.total));
+    let top = tiradas.filter(t => t.total === max);
     let intentos = 0;
     
     while (top.length > 1 && intentos < 5) {
-      top = top.map(t => ({ ...t, roll: Math.floor(Math.random() * 6) + 1 }));
-      max = Math.max(...top.map(t => t.roll));
-      top = top.filter(t => t.roll === max);
+      top = top.map(t => {
+        const dado1 = Math.floor(Math.random() * 6) + 1;
+        const dado2 = Math.floor(Math.random() * 6) + 1;
+        return { ...t, dado1, dado2, total: dado1 + dado2 };
+      });
+      max = Math.max(...top.map(t => t.total));
+      top = top.filter(t => t.total === max);
       intentos++;
     }
     
     const ganador = top[0];
     
-    // Emitir resultado del tiebreak
+    // Emitir resultado del tiebreak con DOS dados
     io.to(salaId).emit('tiebreakResultado', {
       patron: empate.patron,
       numero: empate.numeroGanador,
       tiradas: tiradas.map(t => ({
         jugadorId: t.jugador.id,
         nombre: t.jugador.nombre,
-        roll: t.roll
+        dado1: t.dado1,
+        dado2: t.dado2,
+        total: t.total
       })),
       ganador: {
         jugadorId: ganador.jugador.id,
         nombre: ganador.jugador.nombre,
-        roll: ganador.roll
+        dado1: ganador.dado1,
+        dado2: ganador.dado2,
+        total: ganador.total
       }
     });
     
@@ -383,8 +412,28 @@ function resolverEmpatesConDados(empatesReales, salaId, sala) {
 // Función para reanudar sin empate
 function reanudarJuegoSinEmpate(salaId, sala) {
   sala.juegoActivo = true;
-  io.to(salaId).emit('estadoJuego', { estado: 'reanudado', por: 'sinEmpate' });
-  io.to(salaId).emit('juegoReanudado', { mensaje: '¡El juego continúa!' });
+  
+  // Obtener información de los ganadores únicos para el mensaje detallado
+  const ganadoresUnicos = [];
+  sala.ganadores.forEach(ganador => {
+    if (ganador.numeroGanador === sala._tiebreak.numero) {
+      ganadoresUnicos.push({
+        nombre: ganador.jugador.nombre,
+        patron: ganador.patron,
+        tipo: ganador.resultado.tipo
+      });
+    }
+  });
+  
+  // Emitir evento especial para victoria sin empate con detalles
+  io.to(salaId).emit('victoriaSinEmpate', { 
+    mensaje: '¡Victoria confirmada! No hubo empate, el juego continúa.',
+    ganadores: ganadoresUnicos,
+    timestamp: Date.now()
+  });
+  
+  // Reanudar el juego (sin notificación adicional para evitar spam)
+  sala.juegoActivo = true;
 }
 
 // Manejo de conexiones Socket.IO
@@ -399,10 +448,10 @@ io.on('connection', (socket) => {
       socket.emit('error', { mensaje: 'La ventana de Bingo para este número ya terminó' });
       return;
     }
-    // Pausar juego mientras se espera a otros posibles ganadores
-    sala.juegoActivo = false;
-    const anfitrion = sala.jugadores.find(j => j.id === sala.anfitrion);
-    io.to(data.salaId).emit('estadoJuego', { estado: 'pausa', por: 'empate' });
+      // Pausar juego mientras se espera a otros posibles ganadores
+  // NO emitir estadoJuego aquí para evitar mensajes en el historial
+  sala.juegoActivo = false;
+  const anfitrion = sala.jugadores.find(j => j.id === sala.anfitrion);
     if (sala._tiebreak && sala._tiebreak.activo) {
       // agregar participante si no está
       const existe = sala._tiebreak.participantes.some(p => p.id === socket.id);

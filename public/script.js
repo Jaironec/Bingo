@@ -100,6 +100,7 @@ function inicializarSocket() {
     socket.on('bingoDeclarado', manejarBingoDeclarado);
     socket.on('tiebreakIniciado', manejarTiebreakIniciado);
     socket.on('tiebreakResultado', manejarTiebreakResultado);
+    socket.on('victoriaSinEmpate', manejarVictoriaSinEmpate);
     socket.on('jugadorDesconectado', manejarJugadorDesconectado);
     socket.on('salaConfigurada', manejarSalaConfigurada);
     socket.on('juegoTerminado', manejarJuegoTerminado);
@@ -949,12 +950,15 @@ function manejarTiebreakResultado(payload) {
             
             card.innerHTML = `
                 <div class='name'>${t.nombre}</div>
-                <div class='dice-result'>
+                <div class='dice-pair-result'>
                     <div class='dice ${esGanador ? 'winner' : ''}'>
-                        ${crearDadoHTML(roll)}
+                        ${crearDadoHTML(t.dado1)}
+                    </div>
+                    <div class='dice ${esGanador ? 'winner' : ''}'>
+                        ${crearDadoHTML(t.dado2)}
                     </div>
                 </div>
-                <div class='dice-value'>Valor: ${roll}</div>
+                <div class='dice-sum'>Total: ${t.total}</div>
                 ${esGanador ? '<div class="winner-badge">🏆 ¡GANADOR!</div>' : ''}
             `;
             
@@ -1066,25 +1070,32 @@ function iniciarCuentaRegresivaFinal(segundos) {
     }
 }
 
-function mostrarModalGanadoresFinal() {
+function mostrarModalGanadoresFinal(ganadoresExternos = null) {
     const modal = document.getElementById('modalGanadoresFinal');
     const contenedor = document.getElementById('ganadoresFinales');
     contenedor.innerHTML = '';
-    const lista = (salaActual && Array.isArray(salaActual.ganadores)) ? salaActual.ganadores : [];
+    
+    // Usar ganadores externos si se proporcionan, sino usar los de la sala
+    const lista = ganadoresExternos || (salaActual && Array.isArray(salaActual.ganadores)) ? salaActual.ganadores : [];
     
     console.log('🏆 Mostrando modal de ganadores finales:', lista);
     
-    if (lista.length > 0) {
+    if (lista && lista.length > 0) {
         lista.forEach(g => {
             const card = document.createElement('div');
             card.className = 'ganador-categoria';
             const icono = obtenerIconoPatron(g.patron);
             const nombrePatron = obtenerNombrePatron(g.patron);
+            
+            // Manejar tanto el formato de sala como el formato externo
+            const nombreJugador = g.jugador ? g.jugador.nombre : g.nombre;
+            const tipoGanador = g.resultado ? g.resultado.tipo : g.tipo;
+            
             card.innerHTML = `
                 <div class="icono-categoria ${g.patron}">${icono}</div>
                 <div class="info-ganador">
-                    <div class="nombre-ganador">${g.jugador.nombre}</div>
-                    <div class="tipo-ganador">${nombrePatron}</div>
+                    <div class="nombre-ganador">${nombreJugador}</div>
+                    <div class="tipo-ganador">${tipoGanador || nombrePatron}</div>
                 </div>
             `;
             contenedor.appendChild(card);
@@ -1177,11 +1188,18 @@ function manejarJuegoTerminado(data) {
     agregarEventoHistorial('⏹️ El juego terminó');
     mostrarNotificacion(data.mensaje, 'exito');
     
-    // Limpiar datos de la sala después de mostrar la notificación
-    setTimeout(() => { 
-        limpiarDatosSala();
-        volverInicio(); 
-    }, 5000); // esperar 5s para volver al inicio cuando termina por tabla llena o sin números
+    // Si es tabla llena, mostrar modal de ganadores finales con los ganadores reales
+    if (data.esTablaLlena && data.ganadores) {
+        setTimeout(() => {
+            mostrarModalGanadoresFinal(data.ganadores);
+        }, 2000);
+    } else {
+        // Solo para otros tipos de fin de juego, limpiar y volver al inicio
+        setTimeout(() => { 
+            limpiarDatosSala();
+            volverInicio(); 
+        }, 5000);
+    }
 }
 
 function manejarJuegoReanudado(data) {
@@ -1212,17 +1230,9 @@ function manejarEstadoJuego(data) {
         // Ocultar indicador de pausa por empate
         mostrarIndicadorPausaEmpate(false);
         
-        // Si el juego se reanuda después del tiebreak, mostrar notificación especial
+        // Solo mostrar notificación para tiebreak, no para sinEmpate (ya se maneja en victoriaSinEmpate)
         if (data.por && data.por.includes('tiebreak')) {
             mostrarNotificacion('¡Juego reanudado después del desempate!', 'exito');
-        } else if (data.por && data.por.includes('sinEmpate')) {
-            mostrarNotificacion('¡Juego reanudado! No hubo empate', 'info');
-            
-            // Cerrar inmediatamente el modal de bingo si está abierto
-            const modalBingo = document.getElementById('modalBingo');
-            if (modalBingo && !modalBingo.classList.contains('oculta')) {
-                modalBingo.classList.add('oculta');
-            }
         }
     }
 }
@@ -2010,6 +2020,11 @@ function limpiarDatosSala() {
     ultimoBingoClickNumero = null;
     ultimoBingoClickPatron = null;
     
+    // Limpiar estado del tiebreak
+    if (window.jugadoresTiebreak) {
+        delete window.jugadoresTiebreak;
+    }
+    
     // Limpiar notificaciones
     limpiarNotificaciones();
     
@@ -2040,6 +2055,16 @@ function limpiarDatosSala() {
     const modalTiebreak = document.getElementById('modalTiebreak');
     if (modalTiebreak) modalTiebreak.classList.add('oculta');
     
+    const modalGanadoresFinal = document.getElementById('modalGanadoresFinal');
+    if (modalGanadoresFinal) modalGanadoresFinal.classList.add('oculta');
+    
+    // Limpiar indicadores de pausa y victoria
+    const indicadorPausa = document.getElementById('indicadorPausaEmpate');
+    if (indicadorPausa) indicadorPausa.classList.add('oculta');
+    
+    const indicadorVictoria = document.getElementById('indicadorVictoriaConfirmada');
+    if (indicadorVictoria) indicadorVictoria.classList.add('oculta');
+    
     // Remover clases del body
     document.body.classList.remove('anfitrion');
     
@@ -2052,6 +2077,22 @@ function limpiarDatosSala() {
     if (btnPausar) {
         btnPausar.dataset.pausado = 'false';
         btnPausar.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+    }
+    
+    // Limpiar panel de patrones disponibles
+    const patronesDisponibles = document.getElementById('patronesDisponibles');
+    if (patronesDisponibles) patronesDisponibles.style.display = 'none';
+    
+    // Limpiar botón de bingo
+    const btnBingo = document.getElementById('btnBingo');
+    if (btnBingo) {
+        btnBingo.disabled = true;
+        btnBingo.textContent = 'Declara Bingo';
+    }
+    
+    // Limpiar estado de juego
+    if (window.estadoJuego) {
+        delete window.estadoJuego;
     }
     
     console.log('✅ Datos de sala limpiados completamente');
@@ -2650,3 +2691,63 @@ function agregarEventoHistorialOffline(texto) {
 }
 
 // El servidor maneja automáticamente el tiebreak, no necesitamos estas funciones
+
+// Función para manejar victoria sin empate (más visible)
+function manejarVictoriaSinEmpate(data) {
+    console.log('🏆 Victoria sin empate:', data);
+    
+    // Crear mensaje detallado con los ganadores
+    let mensajeDetallado = '🎉 ¡VICTORIA CONFIRMADA!\n\n';
+    
+    if (data.ganadores && data.ganadores.length > 0) {
+        mensajeDetallado += '🏆 GANADORES:\n';
+        data.ganadores.forEach(ganador => {
+            mensajeDetallado += `• ${ganador.nombre}: ${ganador.tipo}\n`;
+        });
+        mensajeDetallado += '\n✅ No hubo empate, el juego continúa.';
+    } else {
+        mensajeDetallado += '✅ No hubo empate, el juego continúa.';
+    }
+    
+    // Mostrar notificación detallada
+    mostrarNotificacion(mensajeDetallado, 'exito');
+    
+    // Agregar evento al historial con emoji especial
+    agregarEventoHistorial(`🏆 Victoria confirmada - ${data.ganadores?.length || 0} ganador(es)`);
+    
+    // Cerrar inmediatamente el modal de bingo si está abierto
+    const modalBingo = document.getElementById('modalBingo');
+    if (modalBingo && !modalBingo.classList.contains('oculta')) {
+        modalBingo.classList.add('oculta');
+    }
+    
+    // Mostrar indicador visual de victoria confirmada
+    mostrarIndicadorVictoriaConfirmada();
+}
+
+// Función para mostrar indicador visual de victoria confirmada
+function mostrarIndicadorVictoriaConfirmada() {
+    // Crear o mostrar indicador de victoria confirmada
+    let indicador = document.getElementById('indicadorVictoriaConfirmada');
+    
+    if (!indicador) {
+        indicador = document.createElement('div');
+        indicador.id = 'indicadorVictoriaConfirmada';
+        indicador.className = 'indicador-victoria-confirmada';
+        indicador.innerHTML = `
+            <div class="indicador-contenido">
+                <i class="fas fa-trophy"></i>
+                <span>¡VICTORIA CONFIRMADA!</span>
+            </div>
+        `;
+        document.body.appendChild(indicador);
+    }
+    
+    // Mostrar el indicador
+    indicador.classList.remove('oculta');
+    
+    // Ocultar después de 3 segundos
+    setTimeout(() => {
+        indicador.classList.add('oculta');
+    }, 3000);
+}

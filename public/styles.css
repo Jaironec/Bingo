@@ -3530,9 +3530,9 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
 #modalOfflineBingo .modal-body { margin-bottom: 10px; }
 
 /* Panel derecho: historial ocupa todo */
-    .panel-derecho { display:flex; flex-direction:column; }
-    .panel-derecho .historial { flex:1; display:flex; flex-direction:column; }
-    .panel-derecho .lista-historial { flex:1; }
+.panel-derecho { display:flex; flex-direction:column; }
+.panel-derecho .historial { flex:1; display:flex; flex-direction:column; }
+.panel-derecho .lista-historial { flex:1; }
     
     /* Panel de patrones responsive */
     .patrones-disponibles {
@@ -3556,3 +3556,37 @@ body { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-
     .patron-nombre {
         font-size: 0.8rem;
     }
+
+/* Indicador de victoria confirmada */
+.indicador-victoria-confirmada {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 25px;
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+    z-index: 1000;
+    animation: slideInDown 0.5s ease-out;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+.indicador-victoria-confirmada.oculta { display: none; }
+.indicador-victoria-confirmada .indicador-contenido { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    font-weight: 700; 
+    font-size: 1.2rem; 
+}
+.indicador-victoria-confirmada .indicador-contenido i { 
+    font-size: 1.5rem; 
+    animation: winnerPulse 1.5s ease-in-out infinite; 
+    color: #ffd700; 
+}
+
+@keyframes winnerPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
